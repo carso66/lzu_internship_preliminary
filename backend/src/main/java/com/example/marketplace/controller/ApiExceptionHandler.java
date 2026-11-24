@@ -1,6 +1,8 @@
 package com.example.marketplace.controller;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -13,6 +15,8 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException exception) {
@@ -30,6 +34,13 @@ public class ApiExceptionHandler {
                 ? "request body is invalid"
                 : field + " has an invalid type or format";
         return badRequest(message);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception exception) {
+        LOGGER.error("Unhandled exception while processing API request", exception);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(50000, "internal server error", null));
     }
 
     private ResponseEntity<ApiResponse<Void>> badRequest(String message) {

@@ -32,7 +32,7 @@ mvn spring-boot:run
 
 ## 测试 / 自检
 
-在 `backend/` 下执行 `mvn test` 运行接口测试，或执行 `mvn clean package` 同时验证测试与打包。L0-2 的 MockMvc 集成测试共 21 条，覆盖合法发布、必填项、字段长度、数值范围以及 JSON 类型错误。
+在 `backend/` 下执行 `mvn test` 运行接口测试，或执行 `mvn clean package` 同时验证测试与打包。L0-2 的 MockMvc 集成测试共 22 条，覆盖合法发布、必填项、字段长度、数值范围、JSON 类型错误以及未预期异常的统一响应。
 
 ```powershell
 cd backend
