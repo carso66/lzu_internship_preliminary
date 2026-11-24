@@ -16,4 +16,14 @@ public record ApiResponse<T>(int code, String message, T data) {
     public static ApiResponse<Void> ok() {
         return new ApiResponse<>(0, "ok", null);
     }
+
+    /** 失败响应：使用错误码默认文案，HTTP 状态由调用方/异常处理器决定 */
+    public static ApiResponse<Void> error(ErrorCode errorCode) {
+        return new ApiResponse<>(errorCode.code(), errorCode.defaultMessage(), null);
+    }
+
+    /** 失败响应：自定义面向客户端的提示文案 */
+    public static ApiResponse<Void> error(ErrorCode errorCode, String message) {
+        return new ApiResponse<>(errorCode.code(), message, null);
+    }
 }
