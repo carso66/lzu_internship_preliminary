@@ -63,6 +63,24 @@ public class ProductRepository {
                 .stream().findFirst();
     }
 
+    /** 下单事务专用：锁定商品行，保证状态和库存检查不会被并发修改。 */
+    public Optional<Product> findByIdForUpdate(long id) {
+        return jdbc.query("SELECT " + COLUMNS + " FROM products WHERE id = :id FOR UPDATE",
+                        Map.of("id", id), ROW_MAPPER)
+                .stream().findFirst();
+    }
+
+    /** 条件扣库存，库存不足时不更新；返回受影响行数。 */
+    public int decreaseStock(long id, int quantity) {
+        return jdbc.update("""
+                UPDATE products
+                SET stock = stock - :quantity
+                WHERE id = :id
+                  AND status = 'on'
+                  AND stock >= :quantity
+                """, Map.of("id", id, "quantity", quantity));
+    }
+
     public long count(ProductListQuery query) {
         Filter filter = buildFilter(query);
         Long total = jdbc.queryForObject("SELECT COUNT(*) FROM products" + filter.where(),

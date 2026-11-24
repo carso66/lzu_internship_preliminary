@@ -43,4 +43,11 @@ class DatabaseMigrationTest {
         );
         assertThat(result).isZero();
     }
+
+    @Test
+    void orderNumberSequenceIsAvailable() {
+        Long sequence = jdbcTemplate.queryForObject(
+                "SELECT NEXT VALUE FOR order_no_seq", Long.class);
+        assertThat(sequence).isNotNull().isPositive();
+    }
 }

@@ -3,9 +3,9 @@
 -- 所有金额单位为“分”，使用 BIGINT。
 -- 时间字段保留时区；应用统一按 UTC 写入和输出。
 --
--- 本文件是初始建表基线，与 Flyway V1 内容一致。
+-- 本文件是当前完整结构快照（V1 基线 + 后续迁移）。
 -- 应用启动只运行 Flyway，不通过 Spring SQL 初始化执行本文件。
--- 后续数据库变更通过新增迁移维护。
+-- 后续数据库变更通过新增迁移维护；V1 已应用后不要再修改其内容。
 --
 -- 本脚本用于空数据库初始化，不重复执行，不清理已有数据。
 
@@ -152,3 +152,7 @@ CREATE TABLE payments (
     CONSTRAINT ck_payments_status
         CHECK (status = 'paid')
 );
+
+
+-- V2：订单号序列。全局递增，回滚会产生空洞，但保证并发下不重复。
+CREATE SEQUENCE order_no_seq START WITH 1 INCREMENT BY 1;
