@@ -147,4 +147,12 @@ public class JdbcProductRepository implements ProductRepository {
     public int updateStatus(Long id, String status) {
         return jdbcTemplate.update("UPDATE products SET status = ? WHERE id = ?", status, id);
     }
+
+    @Override
+    public int deductStockIfAvailable(Long id, int quantity) {
+        // 条件更新：上架 + 剩余库存充足才扣减，占位符顺序为 quantity, id, status, quantity
+        return jdbcTemplate.update(
+                "UPDATE products SET stock = stock - ? WHERE id = ? AND status = ? AND stock >= ?",
+                quantity, id, Product.STATUS_ON, quantity);
+    }
 }

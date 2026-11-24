@@ -35,4 +35,13 @@ public interface ProductRepository {
      * 更新商品状态，返回受影响行数（0 表示商品不存在）。
      */
     int updateStatus(Long id, String status);
+
+    /**
+     * 原子扣减库存：仅当商品处于上架状态且剩余库存充足时才扣减，
+     * 返回受影响行数（1 表示扣减成功，0 表示因下架 / 库存不足 / 商品不存在而未扣减）。
+     *
+     * <p>更新条件同时校验 status 与剩余库存，避免「先查库存再无条件更新」的竞态：
+     * 并发下单时由数据库在行级锁上重新评估条件，不会把库存扣成负数。
+     */
+    int deductStockIfAvailable(Long id, int quantity);
 }

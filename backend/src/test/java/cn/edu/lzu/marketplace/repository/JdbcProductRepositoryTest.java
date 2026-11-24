@@ -129,4 +129,16 @@ class JdbcProductRepositoryTest {
         List<Object> bound = boundArgs(inv, 1); // update 只有 sql 是前导
         assertEquals(List.of("off", 5L), bound);
     }
+
+    @Test
+    void deductStockIfAvailableBindsQuantityIdStatusQuantity() {
+        repository.deductStockIfAvailable(3L, 2);
+
+        Invocation inv = invocationWithSql("UPDATE products SET stock = stock - ?");
+        // 条件更新：同时约束 id / status / 剩余库存，防止超卖与对下架商品扣减
+        assertEquals("UPDATE products SET stock = stock - ? WHERE id = ? AND status = ? AND stock >= ?",
+                inv.getArguments()[0]);
+        List<Object> bound = boundArgs(inv, 1);
+        assertEquals(List.of(2, 3L, "on", 2), bound);
+    }
 }
