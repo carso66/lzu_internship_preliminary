@@ -283,11 +283,57 @@ CREATE INDEX idx_orders_buyer_created ON orders (buyer_phone, created_at DESC);
 
 ### 7.3 `EXPLAIN` 前后对比
 
-> 本节数据用 `scripts/explain_index.sh` 在 5000 行造数后采集，命令与原始输出见 `SUBMISSION.md`。
+数据用 `scripts/explain_index.sh` 采集，一条命令自己走完全程：建临时 H2 文件库 → 按 `schema.sql:27-44` 的 DDL 建 `orders` → 插 5000 行（50 个买家，每人 100 单）→ `EXPLAIN ANALYZE` 跑一次查询 → 建索引再跑一次 → 删库。不依赖服务在跑。
 
-（EXPLAIN 实测表格在 B8 阶段回填：同一查询在"删掉索引"和"有索引"两种状态下各跑一次，贴 `scanType` 与是否出现 `sort`。）
+```bash
+bash backend/scripts/explain_index.sh
+```
 
-**放弃了什么**：放弃了给 `products.title` 建索引。`ORDER BY title` 不在任何接口里出现，`keyword` 用的是 `LIKE '%x%'`（`ProductDao.java:73-74`）——**前缀通配符用不上普通 B-Tree 索引**，建了也白建。真要让关键词查询走索引，得换 H2 的全文索引或搜索引擎，那是另一个数量级的工程。代价是本项目里关键词搜索是 `TABLE_SCAN`，5000 行以内感觉不到。
+被 EXPLAIN 的就是 `OrderDao.java:87-89` 那条（把参数替换成具体值）：
+
+```sql
+SELECT ... FROM orders
+ WHERE buyer_phone = '13800000007'
+ ORDER BY created_at DESC, id DESC
+ LIMIT 10 OFFSET 0
+```
+
+**没有索引**：
+
+```
+FROM "PUBLIC"."ORDERS"
+    /* PUBLIC.ORDERS.tableScan */
+    /* scanCount: 5001 */
+WHERE "BUYER_PHONE" = '13800000007'
+ORDER BY 12 DESC, 1 DESC
+OFFSET 0 ROWS
+FETCH NEXT 10 ROWS ONLY
+```
+
+**建了 `idx_orders_buyer_created` 之后**：
+
+```
+FROM "PUBLIC"."ORDERS"
+    /* PUBLIC.IDX_ORDERS_BUYER_CREATED: BUYER_PHONE = '13800000007' */
+    /* scanCount: 101 */
+WHERE "BUYER_PHONE" = '13800000007'
+ORDER BY 12 DESC, 1 DESC
+OFFSET 0 ROWS
+FETCH NEXT 10 ROWS ONLY
+```
+
+| | 访问路径 | 读行数 `scanCount` | Shell 报的语句耗时 |
+| --- | --- | --- | --- |
+| 无索引 | `ORDERS.tableScan` | 5001 | 37 ms |
+| 有 `idx_orders_buyer_created` | `IDX_ORDERS_BUYER_CREATED: BUYER_PHONE = '13800000007'` | 101 | 19 ms |
+
+读行数 5001 → 101，正好是"全表 5000 行"与"这个买家的 100 单 + 1"的差别。耗时不作数，H2 的 Shell 计时包含客户端开销、噪声很大，只看 `scanCount`。
+
+**实测推翻了 7.2 节的一句话，这里更正**：7.2 第 2 条说"`ORDER BY` 可以直接顺索引走，**省掉一次排序**"。实测计划里 `ORDER BY 12 DESC, 1 DESC` 仍然在，读行数也是 101 而不是 10 —— H2 2.3.232 在这个查询形态下**没有把 `LIMIT` 下推到索引扫描里提前收手**，它是把这个买家命中的 100 行读出来、排完序、再取前 10。我还试过把 `id DESC` 也加进索引（`(buyer_phone, created_at DESC, id DESC)`），`scanCount` 依旧是 101，所以那不是列顺序写错了，是这个库在这个查询形态下不做 limit 下推。
+
+那这个索引到底买到了什么：**读行数从全量 5000 降到该买家的 100**，买家越多、人下单越频繁，差距越大。至于"省掉排序"，H2 的计划文本里本来就不单独标注 sort 节点，我不能凭它宣称省了；能宣称的只有上面那张表里的 `scanCount`。
+
+**放弃了什么**：放弃了两个索引想法。一是"把 `id` 也塞进索引以消除那 100 行的排序"——实测 `scanCount` 仍然 101，白付写入代价，真要排完只读 10 行得靠游标翻页或换库，而本项目的分页语义要求稳定排序，不改。二是给 `products.title` 建索引。`ORDER BY title` 不在任何接口里出现，`keyword` 用的是 `LIKE '%x%'`（`ProductDao.java:73-74`）——**前缀通配符用不上普通 B-Tree 索引**，建了也白建。真要让关键词查询走索引，得换 H2 的全文索引或搜索引擎，那是另一个数量级的工程。代价是本项目里关键词搜索是 `TABLE_SCAN`，5000 行以内感觉不到。
 
 ---
 

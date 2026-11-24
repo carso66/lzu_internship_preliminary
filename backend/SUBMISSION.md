@@ -332,14 +332,19 @@ mvn test
 4. 商品不存在：`404`/`40401`
 5. 重复支付：第一次 `200` `amount=5000`，换 `wechat` 第二次 `409`/`40903`，且 `SELECT COUNT(*) FROM payments WHERE order_id=(SELECT id FROM orders WHERE order_no=?)` = **1**
 
-实际输出：
+实际输出（**在一份干净的 `git clone` 里跑的**，不是在工作目录里跑给自己的）：
 
 ```
 [INFO] Running com.lzu.market.OrderFlowTest
-2026-11-24T14:04:36.905+08:00  INFO --- [main] com.lzu.market.OrderFlowTest : Started OrderFlowTest in 1.987 seconds
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.033 s
+2026-11-24T14:16:13.077+08:00  INFO --- [main] com.lzu.market.OrderFlowTest : Started OrderFlowTest in 1.979 seconds
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.170 s
+[INFO] Results:
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
+[INFO] Total time:  7.459 s
 ```
+
+干净 clone 里同时验过服务能起来：`mvn -B spring-boot:run -Dspring-boot.run.arguments=--server.port=8099`（换端口避免和本机 8080 撞），`GET /api/health` → `{"code":0,"message":"ok","data":null}`，发商品 → `201 id=1`，列表 → `total=1`。
 
 只想看结论：
 
@@ -423,6 +428,25 @@ UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?
 ```
 
 `WHERE stock >= ?` 让"判断够不够"和"扣减"在**同一条语句**里完成，影响行数为 0 就是库存不足。详见 `DESIGN.md` 第 4 节。
+
+### 7.3 索引证据（EXPLAIN 前后对比）
+
+脚本：`backend/scripts/explain_index.sh`。**不需要服务在跑**，它自己建临时 H2 库、按 `schema.sql` 的 DDL 建 `orders`、插 5000 行（50 个买家 × 每人 100 单）、跑 `EXPLAIN ANALYZE`、建索引再跑一次、最后删库。
+
+```bash
+bash backend/scripts/explain_index.sh
+```
+
+查询就是订单列表那条（`WHERE buyer_phone = '13800000007' ORDER BY created_at DESC, id DESC LIMIT 10`）：
+
+| | 访问路径 | 读行数 `scanCount` |
+| --- | --- | --- |
+| 无索引 | `ORDERS.tableScan` | 5001 |
+| 有 `idx_orders_buyer_created` | `IDX_ORDERS_BUYER_CREATED: BUYER_PHONE = '13800000007'` | 101 |
+
+读行数 5001 → 101，正好是"全表 5000 行"和"这个买家的 100 单 + 1"的差别。脚本末尾会打印 `RESULT: INDEX USED, ROWS READ 5001 -> 101`，退出码 `0`。
+
+**这里有一处我实测后推翻了自己的说法，写在 `DESIGN.md` 7.3 里**：原以为索引能让 `ORDER BY` 完全免排序（`LIMIT 10` 只读 10 行），实测 H2 2.3.232 仍然把这个买家的 100 行读出来排序再取前 10，`ORDER BY` 也还在计划里。把 `id` 加进索引同样无效。所以这个索引的收益只有一条能站住：**读行数从全量降到该买家自己的行数**。
 
 ---
 
