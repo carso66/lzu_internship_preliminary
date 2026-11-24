@@ -332,16 +332,25 @@ mvn test
 4. 商品不存在：`404`/`40401`
 5. 重复支付：第一次 `200` `amount=5000`，换 `wechat` 第二次 `409`/`40903`，且 `SELECT COUNT(*) FROM payments WHERE order_id=(SELECT id FROM orders WHERE order_no=?)` = **1**
 
-实际输出（**在一份干净的 `git clone` 里跑的**，不是在工作目录里跑给自己的）：
+实际输出（**从 GitHub 重新 clone 下来的干净副本，HEAD = `6ad48fb`**，不是在工作目录里跑给自己的）：
 
 ```
-[INFO] Running com.lzu.market.OrderFlowTest
-2026-11-24T14:16:13.077+08:00  INFO --- [main] com.lzu.market.OrderFlowTest : Started OrderFlowTest in 1.979 seconds
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.170 s
+2026-11-24T14:29:59.502+08:00  INFO --- [main] com.lzu.market.OrderFlowTest : Started OrderFlowTest in 2.036 seconds
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.191 s -- in com.lzu.market.OrderFlowTest
 [INFO] Results:
 [INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
-[INFO] Total time:  7.459 s
+[INFO] Total time:  7.571 s
+[INFO] Finished at: 2026-11-24T14:30:01+08:00
+```
+
+（`Time elapsed` / `Total time` 会随机器负载浮动几十毫秒到一秒，别拿这两个数字当验收标准——**看的是 `Tests run: 5, Failures: 0, Errors: 0` 和 `BUILD SUCCESS`**。）
+
+从零复现（连 clone 一起）：
+
+```bash
+git clone -b 320240931231 https://github.com/jianglai520/lzu_internship_preliminary.git /tmp/x
+cd /tmp/x/backend && mvn -B test
 ```
 
 干净 clone 里同时验过服务能起来：`mvn -B spring-boot:run -Dspring-boot.run.arguments=--server.port=8099`（换端口避免和本机 8080 撞），`GET /api/health` → `{"code":0,"message":"ok","data":null}`，发商品 → `201 id=1`，列表 → `total=1`。

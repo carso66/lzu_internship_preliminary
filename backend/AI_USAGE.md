@@ -27,7 +27,23 @@ Token 那个数字值得解释一下：**22.4 M 里有 93% 是缓存命中**，�
 - **错了肉眼可见的活** → 用最快的档：CRUD 骨架、`RowMapper` 样板、curl 命令、Markdown 措辞。这类产出我 30 秒内能判断对错，模型弱一点无所谓。
 - **"看起来对"和"真的对"差很远的活** → 想用强档：表设计、事务边界、并发不超卖、支付幂等、索引列顺序。这类错误不会在编译期暴露，要等并发脚本跑出来或者并发场景真的发生才现形。
 
-**实际情况是我没能按这个策略分层。** 我的平台账号只有 flash 档权限，调 `/v1/models` 只返回 `deepseek-v4.1-flash`；尝试切到 Pro 档返回 `122014 The current credential has no entitlement`。所以全程一个模型。
+**实际情况是我没能按这个策略分层。** 我的平台账号只有 flash 档权限，所以全程一个模型。这不是猜测，是我自己敲命令验的（最后一次复验：2026-11-24 14:28）：
+
+```bash
+# 1. 这个 key 能看见几个模型
+curl -s -H "Authorization: Bearer $K" https://api.xytoken.xyb2b.com/v1/models
+# 返回 count = 1，只有 deepseek-v4.1-flash
+
+# 2. 换个更强的档试，看是能调还是没权限
+for M in dsh-yx-test deepseek-v4.1-pro DeepSeek-V4-Pro glm-5.3; do
+  curl -s -H "Authorization: Bearer $K" -H "Content-Type: application/json" \
+    https://api.xytoken.xyb2b.com/v1/chat/completions \
+    -d "{\"model\":\"$M\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":8}"
+done
+# 四个全部 HTTP 403 + {"code":"122014","message":"The current credential has no entitlement to access the target model..."}
+```
+
+`$K` 就是 CLI 配置里那把 key，`/v1/models` 里根本没有 Pro 档的名字，直接按名字调也是 403 `122014`（`xy_token_api_error`）。**结论：不是我"没试"，是这个 credential 只授权了 flash 一个模型。**
 
 **补救办法：把"模型分层"换成"验证手段分层"。**
 
