@@ -18,7 +18,8 @@ spring:
       path: /h2-console
 
   jackson:
-    time-zone: Asia/Shanghai
+    # 时间统一按 UTC 输出，与 schema.sql 及 ProductRepository 的归一化保持一致。
+    time-zone: UTC
 
 server:
   port: 8080
