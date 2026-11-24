@@ -4,6 +4,8 @@ import com.example.marketplace.domain.Product;
 import com.example.marketplace.dto.CreateProductRequest;
 import com.example.marketplace.dto.ProductListResponse;
 import com.example.marketplace.dto.ProductResponse;
+import com.example.marketplace.dto.ProductStatusResponse;
+import com.example.marketplace.dto.UpdateProductStatusRequest;
 import com.example.marketplace.service.ProductService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -13,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -44,6 +47,15 @@ public class ProductController {
     public ApiResponse<ProductResponse> getById(@PathVariable long id) {
         Product product = productService.getById(id);
         return ApiResponse.ok(ProductResponse.from(product));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ApiResponse<ProductStatusResponse> updateStatus(
+            @PathVariable long id,
+            @Valid @RequestBody UpdateProductStatusRequest request
+    ) {
+        ProductService.ProductStatus result = productService.updateStatus(id, request.status());
+        return ApiResponse.ok(new ProductStatusResponse(result.id(), result.status()));
     }
 
     @GetMapping

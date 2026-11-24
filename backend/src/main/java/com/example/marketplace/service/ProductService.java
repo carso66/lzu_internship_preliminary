@@ -44,6 +44,15 @@ public class ProductService {
         return product;
     }
 
+    @Transactional
+    public ProductStatus updateStatus(long id, String status) {
+        int updatedRows = productMapper.updateStatus(id, status);
+        if (updatedRows == 0) {
+            throw new ProductNotFoundException(id);
+        }
+        return new ProductStatus(id, status);
+    }
+
     @Transactional(readOnly = true)
     public ProductPage list(String keyword, String status, String category, int page, int pageSize) {
         long total = productMapper.count(keyword, status, category);
@@ -57,5 +66,8 @@ public class ProductService {
     }
 
     public record ProductPage(long total, List<Product> items) {
+    }
+
+    public record ProductStatus(long id, String status) {
     }
 }

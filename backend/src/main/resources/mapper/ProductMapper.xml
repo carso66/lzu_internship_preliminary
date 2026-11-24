@@ -29,6 +29,12 @@
         WHERE id = #{id}
     </select>
 
+    <update id="updateStatus">
+        UPDATE products
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+
     <select id="count" resultType="long">
         SELECT COUNT(*)
         FROM products

@@ -11,6 +11,8 @@ public interface ProductMapper {
 
     Product findById(long id);
 
+    int updateStatus(@Param("id") long id, @Param("status") String status);
+
     long count(
             @Param("keyword") String keyword,
             @Param("status") String status,
