@@ -6,6 +6,8 @@ import com.example.marketplace.mapper.ProductMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class ProductService {
 
@@ -30,5 +32,20 @@ public class ProductService {
 
         productMapper.insert(product);
         return productMapper.findById(product.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public ProductPage list(String keyword, String status, String category, int page, int pageSize) {
+        long total = productMapper.count(keyword, status, category);
+        if (total == 0) {
+            return new ProductPage(0, List.of());
+        }
+
+        long offset = ((long) page - 1) * pageSize;
+        List<Product> items = productMapper.findPage(keyword, status, category, offset, pageSize);
+        return new ProductPage(total, items);
+    }
+
+    public record ProductPage(long total, List<Product> items) {
     }
 }
