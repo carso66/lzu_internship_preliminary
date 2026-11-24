@@ -1,0 +1,188 @@
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: #f6f7f3;
+  color: #24342c;
+  font-family: system-ui, "Microsoft YaHei", sans-serif;
+}
+
+.market {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 28px 20px;
+}
+
+h1 {
+  margin: 0 0 24px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #226044;
+  color: #174b34;
+}
+
+h2 {
+  margin: 0 0 18px;
+  color: #174b34;
+  font-size: 1.4rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(270px, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.panel {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #dbe3dc;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.search {
+  display: flex;
+  gap: 8px;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #bccabf;
+  border-radius: 6px;
+  background: #fff;
+}
+
+textarea {
+  resize: vertical;
+}
+
+button {
+  padding: 8px 14px;
+  border: 1px solid #226044;
+  border-radius: 6px;
+  background: #226044;
+  color: #fff;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #fff;
+  color: #226044;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 510px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #e4e9e4;
+}
+
+th {
+  background: #226044;
+  color: #fff;
+  white-space: nowrap;
+}
+
+td:first-child {
+  width: 35%;
+  overflow-wrap: anywhere;
+}
+
+td:not(:first-child) {
+  white-space: nowrap;
+}
+
+.badge,
+.out-of-stock {
+  display: inline-block;
+  padding: 3px 7px;
+  border-radius: 5px;
+}
+
+.on-sale {
+  background: #e3f4e7;
+  color: #176238;
+}
+
+.off-sale {
+  background: #edf0ed;
+  color: #4d5750;
+}
+
+.out-of-stock {
+  background: #fff0dc;
+  color: #8a4300;
+}
+
+.publish,
+.publish label {
+  display: grid;
+  gap: 6px;
+}
+
+.publish {
+  gap: 14px;
+}
+
+[role="status"]:empty {
+  display: none;
+}
+
+[role="status"] {
+  margin: 10px 0;
+  color: #47594e;
+}
+
+[role="status"].error {
+  color: #a12b24;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

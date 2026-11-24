@@ -1,0 +1,17 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "> **校园好物市集** —— 商品发布 · 下单 · 支付\r > 开卷 48 小时 · 允许使用 AI \r >\r > 本文档是**评分依据**。第 5~7 节每一条都写了「验收标准」——评审会照着你写的启动命令把项目跑起来，按这些条目一条一条点。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "vite": "^8.3.8"
+  }
+}

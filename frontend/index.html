@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>校园好物市集</title>
+  <link rel="stylesheet" href="./src/style.css">
+  <script type="module" src="./src/main.js"></script>
+</head>
+<body>
+  <main class="market">
+    <h1>校园好物市集</h1>
+
+    <div class="layout">
+      <section class="panel" aria-labelledby="products-heading">
+        <h2 id="products-heading">商品列表</h2>
+
+        <form id="search-form" class="search">
+          <label for="keyword" class="visually-hidden">搜索商品名称</label>
+          <input id="keyword" type="search" placeholder="搜索商品名称">
+          <button type="submit">搜索</button>
+        </form>
+
+        <p id="list-message" role="status">加载中…</p>
+        <button id="clear-search" class="secondary" type="button" hidden>
+          清空筛选
+        </button>
+
+        <div id="table-wrapper" class="table-wrapper" hidden>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">商品名称</th>
+                <th scope="col">价格</th>
+                <th scope="col">库存</th>
+                <th scope="col">分类</th>
+                <th scope="col">状态</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody id="product-rows"></tbody>
+          </table>
+        </div>
+
+        <p id="action-message" role="status"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="publish-heading">
+        <h2 id="publish-heading">发布商品</h2>
+
+        <form id="publish-form" class="publish">
+          <label>
+            标题
+            <input name="title" required maxlength="50">
+          </label>
+
+          <label>
+            价格（元）
+            <input name="price" inputmode="decimal" placeholder="例如 19.90" required>
+          </label>
+
+          <label>
+            库存
+            <input name="stock" type="number" min="0" max="999" step="1" required>
+          </label>
+
+          <label>
+            分类
+            <select name="category" required>
+              <option value="" disabled selected>请选择分类</option>
+              <option>数码</option>
+              <option>图书</option>
+              <option>服饰</option>
+              <option>食品</option>
+              <option>文具</option>
+            </select>
+          </label>
+
+          <label>
+            描述
+            <textarea name="description" rows="4" maxlength="200"></textarea>
+          </label>
+
+          <button id="publish-button" type="submit">发布商品</button>
+          <p id="publish-message" role="status"></p>
+        </form>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

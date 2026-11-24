@@ -1,0 +1,214 @@
+const apiBase = 'http://127.0.0.1:3001/api';
+
+const searchForm = document.querySelector('#search-form');
+const keywordInput = document.querySelector('#keyword');
+const clearSearchButton = document.querySelector('#clear-search');
+const listMessage = document.querySelector('#list-message');
+const tableWrapper = document.querySelector('#table-wrapper');
+const productRows = document.querySelector('#product-rows');
+const actionMessage = document.querySelector('#action-message');
+
+const publishForm = document.querySelector('#publish-form');
+const publishButton = document.querySelector('#publish-button');
+const publishMessage = document.querySelector('#publish-message');
+
+let activeKeyword = '';
+let currentListRequest;
+
+async function request(path, { method = 'GET', body, signal } = {}) {
+  const options = { method, signal };
+
+  if (body !== undefined) {
+    options.headers = { 'Content-Type': 'application/json' };
+    options.body = JSON.stringify(body);
+  }
+
+  let response;
+
+  try {
+    response = await fetch(`${apiBase}${path}`, options);
+  } catch (error) {
+    if (error.name === 'AbortError') throw error;
+    throw new Error('无法连接商品服务，请确认 Mock 正在运行。');
+  }
+
+  const result = await response.json();
+
+  if (!response.ok || result.code !== 0) {
+    throw new Error(result.message || `请求失败（HTTP ${response.status}）`);
+  }
+
+  return result.data;
+}
+
+function showMessage(element, message, isError = false) {
+  element.textContent = message;
+  element.classList.toggle('error', isError);
+}
+
+function formatPrice(cents) {
+  return `¥${(cents / 100).toFixed(2)}`;
+}
+
+function yuanToCents(value) {
+  const input = value.trim();
+
+  if (!/^\d+(?:\.\d{1,2})?$/.test(input)) {
+    throw new Error('请输入大于 0、最多两位小数的价格，例如 19.90。');
+  }
+
+  const [yuan, fraction = ''] = input.split('.');
+  const cents = Number(`${yuan}${fraction.padEnd(2, '0')}`);
+
+  if (!Number.isSafeInteger(cents) || cents <= 0) {
+    throw new Error('请输入有效的正数价格。');
+  }
+
+  return cents;
+}
+
+function appendCell(row, text) {
+  const cell = row.insertCell();
+  cell.textContent = text;
+  return cell;
+}
+
+function createProductRow(product) {
+  const row = document.createElement('tr');
+  const isOnSale = product.status === 'on';
+
+  appendCell(row, product.title);
+  appendCell(row, formatPrice(product.price));
+
+  const stockCell = appendCell(row, product.stock);
+  if (product.stock === 0) {
+    const marker = document.createElement('span');
+    marker.className = 'out-of-stock';
+    marker.textContent = '缺货';
+    stockCell.append(' ', marker);
+  }
+
+  appendCell(row, product.category);
+
+  const badge = document.createElement('span');
+  badge.className = isOnSale ? 'badge on-sale' : 'badge off-sale';
+  badge.textContent = isOnSale ? '在售' : '已下架';
+  row.insertCell().append(badge);
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'secondary';
+  button.textContent = isOnSale ? '下架' : '上架';
+  button.addEventListener('click', () => changeStatus(product, button));
+  row.insertCell().append(button);
+
+  return row;
+}
+
+async function loadProducts(keyword = '') {
+  currentListRequest?.abort();
+
+  const controller = new AbortController();
+  currentListRequest = controller;
+  activeKeyword = keyword;
+
+  tableWrapper.hidden = true;
+  clearSearchButton.hidden = true;
+  showMessage(listMessage, '加载中…');
+
+  const products = [];
+  const pageSize = 50;
+
+  try {
+    for (let page = 1; ; page += 1) {
+      const query = new URLSearchParams({ keyword, page, pageSize });
+      const data = await request(`/products?${query}`, {
+        signal: controller.signal,
+      });
+
+      products.push(...data.items);
+      if (products.length >= data.total || data.items.length === 0) break;
+    }
+
+    if (controller.signal.aborted) return;
+
+    productRows.replaceChildren(...products.map(createProductRow));
+    tableWrapper.hidden = products.length === 0;
+    clearSearchButton.hidden = keyword === '';
+    showMessage(
+      listMessage,
+      products.length ? `共 ${products.length} 件商品` : '没找到商品',
+    );
+  } catch (error) {
+    if (controller.signal.aborted) return;
+    clearSearchButton.hidden = keyword === '';
+    showMessage(listMessage, `加载失败：${error.message}`, true);
+  }
+}
+
+async function changeStatus(product, button) {
+  const previousLabel = button.textContent;
+  const nextStatus = product.status === 'on' ? 'off' : 'on';
+
+  button.disabled = true;
+  button.textContent = '处理中…';
+  showMessage(actionMessage, '');
+
+  try {
+    await request(`/products/${product.id}/status`, {
+      method: 'PATCH',
+      body: { status: nextStatus },
+    });
+    showMessage(actionMessage, `已${previousLabel}：${product.title}`);
+    await loadProducts(activeKeyword);
+  } catch (error) {
+    showMessage(actionMessage, error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = previousLabel;
+  }
+}
+
+searchForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  void loadProducts(keywordInput.value.trim());
+});
+
+clearSearchButton.addEventListener('click', () => {
+  searchForm.reset();
+  void loadProducts();
+});
+
+publishForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const fields = new FormData(publishForm);
+  publishButton.disabled = true;
+  publishButton.textContent = '发布中…';
+  showMessage(publishMessage, '');
+
+  try {
+    const product = await request('/products', {
+      method: 'POST',
+      body: {
+        title: fields.get('title').trim(),
+        price: yuanToCents(fields.get('price')),
+        stock: Number(fields.get('stock')),
+        category: fields.get('category'),
+        description: fields.get('description').trim(),
+      },
+    });
+
+    publishForm.reset();
+    searchForm.reset();
+    showMessage(publishMessage, `发布成功：${product.title}`);
+    await loadProducts();
+  } catch (error) {
+    showMessage(publishMessage, error.message, true);
+  } finally {
+    publishButton.disabled = false;
+    publishButton.textContent = '发布商品';
+  }
+});
+
+void loadProducts();
