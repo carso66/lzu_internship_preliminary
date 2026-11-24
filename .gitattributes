@@ -1,0 +1,2 @@
+# 验收脚本统一用 LF 存储与检出，避免 Windows 克隆后 CRLF 让 bash 报 $'\r': command not found
+backend/scripts/* text eol=lf
