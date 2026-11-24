@@ -6,6 +6,16 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password: ""
+  sql:
+    init:
+      # 显式开启初始化：确保 mvn spring-boot:run / mvn test 均会执行 schema.sql
+      mode: always
+      # 从工程根目录（backend/）加载手写 schema.sql，使用相对路径 file:./schema.sql，
+      # 不依赖个人电脑的绝对路径。mvn spring-boot:run 与 mvn test 的 JVM 工作目录
+      # 均为 backend/，故 ./schema.sql 均能正确解析到 backend/schema.sql。
+      schema-locations: file:./schema.sql
+      # 固定以 UTF-8 读取脚本，避免 Windows 平台默认 GBK 编码导致中文注释乱码
+      encoding: UTF-8
 
 server:
   port: 8080
