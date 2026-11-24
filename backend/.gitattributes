@@ -1,0 +1,3 @@
+# 验收脚本统一用 LF 存储与检出。
+# core.autocrlf=true 的 Windows 上，CRLF 脚本交给 bash 会报 $'\r': command not found。
+scripts/* text eol=lf
