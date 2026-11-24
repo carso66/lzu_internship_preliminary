@@ -32,7 +32,15 @@ mvn spring-boot:run
 
 ## 测试 / 自检
 
-在 `backend/` 下执行 `mvn clean package` 验证构建。启动后在另一个终端执行以下命令。健康检查通过 MyBatis Mapper XML 在 H2 中执行 `SELECT 1`。
+在 `backend/` 下执行 `mvn test` 运行接口测试，或执行 `mvn clean package` 同时验证测试与打包。L0-2 的 MockMvc 集成测试共 21 条，覆盖合法发布、必填项、字段长度、数值范围以及 JSON 类型错误。
+
+```powershell
+cd backend
+mvn test
+mvn clean package
+```
+
+应用启动后在另一个终端执行以下命令。健康检查通过 MyBatis Mapper XML 在 H2 中执行 `SELECT 1`。
 
 ```powershell
 curl.exe -i http://localhost:8080/api/health
@@ -46,11 +54,11 @@ curl.exe -i http://localhost:8080/api/health
 
 ## 我做到了哪一步
 
-目前已初始化工程并完成建表。
+目前已初始化工程并完成建表、健康检查和商品发布接口。
 
 | 层级 | 计划范围 | 完成情况 |
 |---|---|---|
-| L0 | 建表和商品接口 | L0-1 已完成，商品接口待开发 |
+| L0 | 建表和商品接口 | L0-1、L0-2 已完成（`POST /api/products`） |
 | L1 | 下单扣库存和订单查询 | 待开发 |
 | L2 | L2-9 支付链路、L2-11 鉴权 | 待开发 |
 

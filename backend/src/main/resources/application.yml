@@ -2,6 +2,11 @@ spring:
   datasource:
     url: jdbc:h2:mem:marketplace;DB_CLOSE_DELAY=-1
     username: sa
+  jackson:
+    deserialization:
+      accept-float-as-int: false
+    mapper:
+      allow-coercion-of-scalars: false
   sql:
     init:
       schema-locations: classpath:schema.sql
