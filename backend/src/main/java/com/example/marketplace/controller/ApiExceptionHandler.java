@@ -1,5 +1,6 @@
 package com.example.marketplace.controller;
 
+import com.example.marketplace.exception.ProductNotFoundException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -41,6 +42,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException exception) {
         return badRequest(exception.getName() + " has an invalid type or format");
+    }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleProductNotFound(ProductNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(40401, exception.getMessage(), null));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

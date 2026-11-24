@@ -2,6 +2,7 @@ package com.example.marketplace.service;
 
 import com.example.marketplace.domain.Product;
 import com.example.marketplace.dto.CreateProductRequest;
+import com.example.marketplace.exception.ProductNotFoundException;
 import com.example.marketplace.mapper.ProductMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,15 @@ public class ProductService {
 
         productMapper.insert(product);
         return productMapper.findById(product.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public Product getById(long id) {
+        Product product = productMapper.findById(id);
+        if (product == null) {
+            throw new ProductNotFoundException(id);
+        }
+        return product;
     }
 
     @Transactional(readOnly = true)
