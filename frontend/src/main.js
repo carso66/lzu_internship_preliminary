@@ -2,7 +2,9 @@ const apiBase = 'http://127.0.0.1:3001/api';
 
 const searchForm = document.querySelector('#search-form');
 const keywordInput = document.querySelector('#keyword');
+const suggestions = document.querySelector('#product-suggestions');
 const clearSearchButton = document.querySelector('#clear-search');
+const categoryButtons = document.querySelectorAll('[data-category]');
 const listMessage = document.querySelector('#list-message');
 const tableWrapper = document.querySelector('#table-wrapper');
 const productRows = document.querySelector('#product-rows');
@@ -11,9 +13,14 @@ const actionMessage = document.querySelector('#action-message');
 const publishForm = document.querySelector('#publish-form');
 const publishButton = document.querySelector('#publish-button');
 const publishMessage = document.querySelector('#publish-message');
+const publishDialog = document.querySelector('#publish-dialog');
+const publishedProduct = document.querySelector('#published-product');
 
-let activeKeyword = '';
+const pendingProducts = new Set();
+
+let activeCategory = '';
 let currentListRequest;
+let searchTimer;
 
 async function request(path, { method = 'GET', body, signal } = {}) {
   const options = { method, signal };
@@ -24,7 +31,6 @@ async function request(path, { method = 'GET', body, signal } = {}) {
   }
 
   let response;
-
   try {
     response = await fetch(`${apiBase}${path}`, options);
   } catch (error) {
@@ -67,6 +73,11 @@ function yuanToCents(value) {
   return cents;
 }
 
+function displayTitle(title) {
+  // 省略 Mock 样例标题里的脚本片段，显示结果仍用 textContent。
+  return title.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '').trim() || title;
+}
+
 function appendCell(row, text) {
   const cell = row.insertCell();
   cell.textContent = text;
@@ -76,8 +87,14 @@ function appendCell(row, text) {
 function createProductRow(product) {
   const row = document.createElement('tr');
   const isOnSale = product.status === 'on';
+  row.dataset.productId = product.id;
 
-  appendCell(row, product.title);
+  const title = document.createElement('span');
+  title.className = 'product-title';
+  title.textContent = displayTitle(product.title);
+  title.title = title.textContent;
+  row.insertCell().append(title);
+
   appendCell(row, formatPrice(product.price));
 
   const stockCell = appendCell(row, product.stock);
@@ -98,30 +115,53 @@ function createProductRow(product) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'secondary';
+  button.disabled = pendingProducts.has(product.id);
   button.textContent = isOnSale ? '下架' : '上架';
+  if (button.disabled) button.textContent = '处理中…';
+
   button.addEventListener('click', () => changeStatus(product, button));
   row.insertCell().append(button);
 
   return row;
 }
 
-async function loadProducts(keyword = '') {
+function selectCategory(category) {
+  activeCategory = category;
+
+  for (const button of categoryButtons) {
+    button.setAttribute('aria-pressed', String(button.dataset.category === category));
+  }
+}
+
+function updateSuggestions(products, keyword) {
+  const titles = keyword
+    ? [...new Set(products.map((product) => displayTitle(product.title)))]
+    : [];
+
+  suggestions.replaceChildren(...titles.slice(0, 6).map((title) => new Option(title)));
+}
+
+async function loadProducts({ revealId } = {}) {
+  clearTimeout(searchTimer);
   currentListRequest?.abort();
 
   const controller = new AbortController();
   currentListRequest = controller;
-  activeKeyword = keyword;
 
-  tableWrapper.hidden = true;
-  clearSearchButton.hidden = true;
-  showMessage(listMessage, '加载中…');
-
+  const keyword = keywordInput.value.trim();
+  const category = activeCategory;
+  const hasFilters = Boolean(keyword || category);
   const products = [];
   const pageSize = 50;
 
+  tableWrapper.hidden = true;
+  clearSearchButton.hidden = !hasFilters;
+  suggestions.replaceChildren();
+  showMessage(listMessage, '加载中…');
+
   try {
     for (let page = 1; ; page += 1) {
-      const query = new URLSearchParams({ keyword, page, pageSize });
+      const query = new URLSearchParams({ keyword, category, page, pageSize });
       const data = await request(`/products?${query}`, {
         signal: controller.signal,
       });
@@ -132,22 +172,34 @@ async function loadProducts(keyword = '') {
 
     if (controller.signal.aborted) return;
 
+    products.sort((first, second) => first.id - second.id);
     productRows.replaceChildren(...products.map(createProductRow));
+    updateSuggestions(products, keyword);
+
     tableWrapper.hidden = products.length === 0;
-    clearSearchButton.hidden = keyword === '';
     showMessage(
       listMessage,
       products.length ? `共 ${products.length} 件商品` : '没找到商品',
     );
+
+    tableWrapper.scrollTop = 0;
+
+    if (revealId !== undefined) {
+      const newRow = productRows.querySelector(`[data-product-id="${revealId}"]`);
+      newRow?.classList.add('new-product');
+      tableWrapper.scrollTop = tableWrapper.scrollHeight;
+    }
   } catch (error) {
     if (controller.signal.aborted) return;
-    clearSearchButton.hidden = keyword === '';
     showMessage(listMessage, `加载失败：${error.message}`, true);
   }
 }
 
 async function changeStatus(product, button) {
-  const previousLabel = button.textContent;
+  if (pendingProducts.has(product.id)) return;
+  pendingProducts.add(product.id);
+
+  const previousLabel = product.status === 'on' ? '下架' : '上架';
   const nextStatus = product.status === 'on' ? 'off' : 'on';
 
   button.disabled = true;
@@ -159,28 +211,59 @@ async function changeStatus(product, button) {
       method: 'PATCH',
       body: { status: nextStatus },
     });
-    showMessage(actionMessage, `已${previousLabel}：${product.title}`);
-    await loadProducts(activeKeyword);
+
+    pendingProducts.delete(product.id);
+    showMessage(actionMessage, `已${previousLabel}：${displayTitle(product.title)}`);
+    await loadProducts();
   } catch (error) {
     showMessage(actionMessage, error.message, true);
   } finally {
-    button.disabled = false;
-    button.textContent = previousLabel;
+    pendingProducts.delete(product.id);
+
+    const currentButton = productRows.querySelector(
+      `[data-product-id="${product.id}"] button`,
+    );
+
+    if (currentButton?.disabled) {
+      currentButton.disabled = false;
+      currentButton.textContent = previousLabel;
+    }
   }
 }
 
 searchForm.addEventListener('submit', (event) => {
   event.preventDefault();
-  void loadProducts(keywordInput.value.trim());
+  void loadProducts();
 });
+
+keywordInput.addEventListener('input', (event) => {
+  currentListRequest?.abort();
+  clearTimeout(searchTimer);
+  if (event.isComposing) return;
+  searchTimer = setTimeout(() => void loadProducts(), 250);
+});
+
+keywordInput.addEventListener('compositionend', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => void loadProducts(), 250);
+});
+
+for (const button of categoryButtons) {
+  button.addEventListener('click', () => {
+    selectCategory(button.dataset.category);
+    void loadProducts();
+  });
+}
 
 clearSearchButton.addEventListener('click', () => {
   searchForm.reset();
+  selectCategory('');
   void loadProducts();
 });
 
 publishForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (publishButton.disabled) return;
 
   const fields = new FormData(publishForm);
   publishButton.disabled = true;
@@ -201,8 +284,11 @@ publishForm.addEventListener('submit', async (event) => {
 
     publishForm.reset();
     searchForm.reset();
-    showMessage(publishMessage, `发布成功：${product.title}`);
-    await loadProducts();
+    selectCategory('');
+    publishedProduct.textContent = displayTitle(product.title);
+    publishDialog.showModal();
+
+    await loadProducts({ revealId: product.id });
   } catch (error) {
     showMessage(publishMessage, error.message, true);
   } finally {
