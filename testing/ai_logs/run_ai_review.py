@@ -52,7 +52,10 @@ KEY_PATHS = [
     REPO / ".xytoken.key",
 ]
 
-# 平台价格页公示单价（元 / 百万 token），用于估算费用
+# 平台价格页公示单价（USD / 百万 token）
+# 注意：这里的币种是美元，不是人民币。平台 500000 quota = 1 USD，且 1 USD = 6.75 CNY。
+# 早期版本误把这些单价当成人民币，导致费用被少算 6.75 倍，已在文档中修正。
+USD_TO_CNY = 6.75
 PRICE = {
     "qwen3.8-flash":      {"in": 0.088889, "out": 0.300000},
     "glm-5.3-flash":      {"in": 0.112222, "out": 0.374444},
@@ -146,12 +149,14 @@ def call(key, model, prompt, max_tokens=8000, temperature=0.3, timeout=600, retr
 
 
 def cost_of(model, usage):
+    """返回 (usd, cny)。PRICE 的单价是 USD / 百万 token。"""
     p = PRICE.get(model)
     if not p:
         return None
     pin = usage.get("prompt_tokens", 0) or 0
     pout = usage.get("completion_tokens", 0) or 0
-    return pin / 1_000_000 * p["in"] + pout / 1_000_000 * p["out"]
+    usd = pin / 1_000_000 * p["in"] + pout / 1_000_000 * p["out"]
+    return usd
 
 
 # ---------------------------------------------------------------- 场景定义
@@ -306,7 +311,8 @@ def main():
                 encoding="utf-8",
             )
 
-            print(f"      OK  输入 {pin} tok / 输出 {pout} tok / {dt:.1f}s / 约 {c:.5f} 元")
+            print(f"      OK  输入 {pin} tok / 输出 {pout} tok / {dt:.1f}s "
+                  f"/ {c:.5f} USD = {c * USD_TO_CNY:.4f} 元")
             print(f"      正文 {len(text)} 字符 / request_id: {rid}")
             results.append({**sc, "ok": True, "usage": usage, "elapsed": dt,
                             "cost": c, "content": text, "rid": rid})
@@ -362,14 +368,15 @@ def main():
     md.append(f"| 输入 token | {summary['prompt_tokens']:,} |")
     md.append(f"| 输出 token | {summary['completion_tokens']:,} |")
     md.append(f"| 合计 token | {summary['total_tokens']:,} |")
-    md.append(f"| 估算费用 | **{summary['cost_est_cny']:.4f} 元** |")
+    md.append(f"| 估算费用 | **{summary['cost_est_cny'] * USD_TO_CNY:.4f} 元**"
+              f"（{summary['cost_est_cny']:.6f} USD，按 1 USD = {USD_TO_CNY} CNY） |")
     md.append("")
 
     md.append("## 调用明细\n")
     md.append("| # | 场景 | 模型 | 档位 | 输入 | 输出 | 耗时 | 估算费用 | request_id |")
     md.append("|---|---|---|---|---|---|---|---|---|")
     for r in summary["scenarios"]:
-        cost_txt = ("%.5f 元" % r["cost_est_cny"]) if r.get("cost_est_cny") else "-"
+        cost_txt = ("%.5f USD / %.4f 元" % (r["cost_est_cny"], r["cost_est_cny"] * USD_TO_CNY)) if r.get("cost_est_cny") else "-"
         md.append(
             f"| {r['id']} | {r['title']} | `{r['model']}` | {r['tier'].split('（')[0]} "
             f"| {r['prompt_tokens'] or '-'} | {r['completion_tokens'] or '-'} "
@@ -407,7 +414,7 @@ def main():
     print(f"  成功调用   : {len(ok)} / {len(results)}")
     print(f"  使用模型   : {', '.join(models_used)}")
     print(f"  合计 token : {total_in + total_out:,}  (输入 {total_in:,} / 输出 {total_out:,})")
-    print(f"  估算费用   : {total_cost:.4f} 元 / 额度 40 元")
+    print(f"  估算费用   : {total_cost:.6f} USD = {total_cost * USD_TO_CNY:.4f} 元 / 额度 40 元")
     print()
     print(f"  明细已写入 : {HERE / '调用记录.md'}")
     print(f"  汇总 JSON  : {HERE / '汇总.json'}")
