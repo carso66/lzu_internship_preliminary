@@ -45,6 +45,7 @@ class ProductServiceImplTest {
     @InjectMocks
     private ProductServiceImpl service;
 
+    // 商品发布与详情：校验初始字段、响应映射及商品不存在时的业务码。
     @Test
     void createSetsDefaultStatusOnAndWritesTimestamp() {
         ProductCreateRequest req =
@@ -103,6 +104,7 @@ class ProductServiceImplTest {
         assertEquals(1L, resp.items().get(0).id());
     }
 
+    // 上下架：检查成功时的响应字段和更新未命中时的错误码。
     @Test
     void updateStatusReturnsIdAndStatus() {
         when(repository.updateStatus(1L, "off")).thenReturn(1);
@@ -124,7 +126,7 @@ class ProductServiceImplTest {
 
     @Test
     void listUsesLongOffsetToAvoidIntegerOverflow() {
-        // page 接近 Integer.MAX_VALUE、pageSize=50 时，(page-1)*pageSize 若按 int 计算会溢出为负
+        // 检查大页码按 long 计算偏移量，在乘以页大小时保持正确结果。
         when(repository.findPage(anyLong(), anyInt(), any(), any(), any()))
                 .thenReturn(new PageResult<>(0L, List.of()));
 

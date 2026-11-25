@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 订单号生成策略单元测试：格式、零填充、唯一性。
+ * 验证订单号的日期格式、序号补位以及同日不同订单 ID 的区分。
  */
 class OrderNoGeneratorTest {
 
@@ -27,6 +27,7 @@ class OrderNoGeneratorTest {
         assertTrue(no.matches("SO\\d{8}\\d{6}"), "订单号应满足 SO+8位日期+6位序号: " + no);
     }
 
+    // 同一日期下，序号部分应随订单 ID 变化。
     @Test
     void generateIsUniqueAcrossDifferentIds() {
         assertNotEquals(OrderNoGenerator.generate(1L, AT), OrderNoGenerator.generate(2L, AT));
@@ -34,7 +35,7 @@ class OrderNoGeneratorTest {
 
     @Test
     void generateDoesNotTruncateLargeId() {
-        // 超过 6 位的序号自然扩展，不截断，保证大 id 下仍唯一
+        // 六位是最小宽度，较长的订单 ID 应完整保留。
         assertEquals("SO202611191234567", OrderNoGenerator.generate(1234567L, AT));
     }
 }

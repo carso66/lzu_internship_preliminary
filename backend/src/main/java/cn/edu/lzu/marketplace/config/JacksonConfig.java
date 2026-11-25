@@ -8,25 +8,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * JSON 反序列化严格化：整数字段（int/Integer/long/Long 等）不再接受
- * 隐式转换，覆盖题目中 price/stock/quantity 这类字段的类型校验要求：
+ * 配置 Jackson 对 JSON 整数字段的类型约束，供商品价格、库存和购买数量等请求字段使用。
  *
- * <ul>
- *   <li>"1990"（字符串形式的数字）→ 拒绝，默认行为会转成 1990</li>
- *   <li>1990.5 / 1990.0（小数）→ 拒绝，默认行为会截断成 1990</li>
- *   <li>""（空串）→ 拒绝，默认行为可能给 0</li>
- * </ul>
- *
- * <p>仅影响 JSON 请求体；查询参数本来就是字符串（如 ?page=1），
- * 由 Spring 的类型转换处理，不受此配置影响，非法值走
- * MethodArgumentTypeMismatchException → 40001。
- *
- * <p>拒绝时抛 MismatchedInputException，被 Spring 包装为
- * HttpMessageNotReadableException，由 GlobalExceptionHandler 转 400 + 40001。
+ * <p>请求体先由 Jackson 反序列化，再由 Bean Validation 检查必填和取值范围。
+ * 查询参数继续由 Spring MVC 转换与校验，解析失败由全局异常处理器统一映射。
  */
 @Configuration
 public class JacksonConfig {
 
+    // 在 Spring Boot 构建 ObjectMapper 时禁用字符串、小数和空串到整数的隐式转换。
+    // 例如 "1990" 和 1990.0 均会被拒绝，避免字符串转换或小数截断后通过范围校验。
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer strictIntegerCoercionCustomizer() {
         return builder -> builder.postConfigurer(mapper ->

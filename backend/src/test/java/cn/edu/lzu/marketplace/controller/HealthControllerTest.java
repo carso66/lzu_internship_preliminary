@@ -11,8 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * 健康接口回归测试：公共模块改造后行为必须保持
- * GET /api/health → {"code":0,"message":"ok","data":null}
+ * 健康接口回归测试：验证 GET /api/health 返回成功响应且无业务数据。
  */
 @SpringBootTest
 @AutoConfigureMockMvc

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 商品的 JdbcTemplate 实现，全部使用参数化 SQL（? 占位符），杜绝 SQL 注入。
+ * 商品的 JDBC 数据访问实现。使用 JdbcTemplate 查询和更新 products 表，输入值通过占位符绑定。
  *
  * <h3>数据库联调依据 —— 依赖的表结构与字段（与 schema.sql 对齐）</h3>
  * <pre>
@@ -34,18 +34,12 @@ import java.util.Optional;
  * | created_at   | TIMESTAMP   | 创建时间, 由应用写入         |
  * </pre>
  *
- * <p>说明：created_at 由 Service 层写入（LocalDateTime.now()），schema.sql 可设
- * NOT NULL；排序默认 id 倒序（README L0-3 未规定排序，此为自定选择）。
- * LIMIT/OFFSET 语法、以及 keyword 子串匹配用到的 {@code LIKE ... ESCAPE '\'}
- * 在 H2 的兼容性需待 schema.sql 就绪后实测确认。
- *
- * <h3>分页参数顺序（易错点）</h3>
- * <p>SQL 写的是 {@code LIMIT ? OFFSET ?}，JDBC 占位符按出现顺序绑定：第 1 个 ? 是
- * 每页条数(limit)，第 2 个 ? 是偏移量(offset)。绑定顺序必须 limit 在前、offset 在后。
+ * <p>created_at 由业务层写入，表约束要求非空。列表按 id 倒序排序，组合筛选和分页在同一处组装。
  */
 @Repository
 public class JdbcProductRepository implements ProductRepository {
 
+    // 查询列及结果映射。详情和分页使用同一套映射，保持读取字段一致。
     private static final String SELECT_COLUMNS =
             "id, title, price, stock, category, description, status, seller_name, created_at";
 
@@ -60,12 +54,14 @@ public class JdbcProductRepository implements ProductRepository {
             rs.getString("seller_name"),
             rs.getTimestamp("created_at").toLocalDateTime());
 
+    // 构造器接收 Spring 配置的 JdbcTemplate，复用数据源及事务连接。
     private final JdbcTemplate jdbcTemplate;
 
     public JdbcProductRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /** 发布商品：按列顺序绑定字段，并取回数据库生成的商品 ID。 */
     @Override
     public Long insert(Product product) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -92,6 +88,7 @@ public class JdbcProductRepository implements ProductRepository {
         return key.longValue();
     }
 
+    /** 商品详情：按主键绑定查询条件，缺失结果由上层解释。 */
     @Override
     public Optional<Product> findById(Long id) {
         List<Product> rows = jdbcTemplate.query(
@@ -99,8 +96,11 @@ public class JdbcProductRepository implements ProductRepository {
         return rows.stream().findFirst();
     }
 
+    /** 组合筛选与分页：用相同的 WHERE 条件统计总数并查询当前页。 */
     @Override
     public PageResult<Product> findPage(long offset, int limit, String keyword, String status, String category) {
+        // ① 动态筛选
+        // 只拼接预定义的条件片段；用户输入通过参数绑定，避免参与 SQL 语法构造。
         StringBuilder conditions = new StringBuilder();
         List<Object> params = new ArrayList<>();
 
@@ -120,11 +120,13 @@ public class JdbcProductRepository implements ProductRepository {
 
         String where = conditions.isEmpty() ? "" : " WHERE 1=1" + conditions;
 
+        // ② 统计符合全部筛选条件的记录数，沿用按条件出现顺序收集的参数。
         Long total = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM products" + where, Long.class, params.toArray());
         long totalCount = total == null ? 0L : total;
 
-        // 占位符顺序是 LIMIT ? OFFSET ?，因此必须先绑定 limit（每页条数）再绑定 offset（偏移量）
+        // ③ 查询当前页：在筛选参数之后依次绑定 LIMIT（每页条数）和 OFFSET（起始偏移量）。
+        // 两者都能传入合法数字，绑定顺序错误时 SQL 仍可能成功执行，但返回错误的页。
         params.add(limit);
         params.add(offset);
         List<Product> items = jdbcTemplate.query(
@@ -135,7 +137,7 @@ public class JdbcProductRepository implements ProductRepository {
         return new PageResult<>(totalCount, items);
     }
 
-    /** 转义 LIKE 通配符，保证 keyword 按字面子串匹配；先转义转义符本身 */
+    /** 先转义反斜杠，再转义输入中的 % 和 _，使只有外层通配符参与子串匹配。 */
     private static String escapeLike(String keyword) {
         return keyword
                 .replace("\\", "\\\\")
@@ -143,14 +145,16 @@ public class JdbcProductRepository implements ProductRepository {
                 .replace("_", "\\_");
     }
 
+    /** 状态更新：返回影响行数，供业务层识别不存在的商品。 */
     @Override
     public int updateStatus(Long id, String status) {
         return jdbcTemplate.update("UPDATE products SET status = ? WHERE id = ?", status, id);
     }
 
+    /** 下单扣库存：通过单条条件 UPDATE 原子检查上架状态及剩余库存。 */
     @Override
     public int deductStockIfAvailable(Long id, int quantity) {
-        // 条件更新：上架 + 剩余库存充足才扣减，占位符顺序为 quantity, id, status, quantity
+        // 以执行更新时的库存为准，避免并发请求按同一份库存快照扣减。
         return jdbcTemplate.update(
                 "UPDATE products SET stock = stock - ? WHERE id = ? AND status = ? AND stock >= ?",
                 quantity, id, Product.STATUS_ON, quantity);

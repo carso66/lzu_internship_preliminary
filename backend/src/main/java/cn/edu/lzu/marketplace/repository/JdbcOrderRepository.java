@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 订单的 JdbcTemplate 实现，全部使用参数化 SQL（? 占位符），杜绝 SQL 注入。
+ * 订单的 JDBC 数据访问实现。使用 JdbcTemplate 写入订单快照，按订单号或买家手机号查询。
  *
  * <h3>数据库联调依据 —— 依赖的表结构与字段（与 schema.sql 对齐）</h3>
  * <pre>
@@ -34,7 +34,7 @@ import java.util.Optional;
  * | address        | VARCHAR(200) | 收货地址, 非空                     |
  * | status         | VARCHAR(10)  | created/paid, 非空                |
  * | created_at     | TIMESTAMP    | 创建时间, 由应用写入, 非空          |
- * | paid_at        | TIMESTAMP    | 支付时间, 可空（L2 支付链路写入）    |
+ * | paid_at        | TIMESTAMP    | 支付预留时间, 可空                 |
  * </pre>
  *
  * <p>关键约束依赖：order_no 上的 UNIQUE 约束是订单号唯一性的最终兜底；
@@ -53,6 +53,7 @@ import java.util.Optional;
 @Repository
 public class JdbcOrderRepository implements OrderRepository {
 
+    // 查询列与领域对象映射，供订单详情和列表使用；支付预留时间允许为空。
     private static final String SELECT_COLUMNS =
             "id, order_no, product_id, product_title, quantity, unit_price, total_amount, "
                     + "buyer_name, buyer_phone, address, status, created_at, paid_at";
@@ -75,12 +76,14 @@ public class JdbcOrderRepository implements OrderRepository {
                 paidAt == null ? null : paidAt.toLocalDateTime());
     };
 
+    // 构造器接收 Spring 配置的 JdbcTemplate，订单写入使用当前事务的连接。
     private final JdbcTemplate jdbcTemplate;
 
     public JdbcOrderRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /** 订单落库：绑定订单快照和临时编号，返回生成的主键供业务层生成正式编号。 */
     @Override
     public Long insert(Order order) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -105,6 +108,7 @@ public class JdbcOrderRepository implements OrderRepository {
             return ps;
         }, keyHolder);
 
+        // 缺失主键时无法生成正式编号，上抛异常使下单事务失败。
         Number key = keyHolder.getKey();
         if (key == null) {
             throw new IllegalStateException("插入订单后未返回自增主键");
@@ -112,11 +116,13 @@ public class JdbcOrderRepository implements OrderRepository {
         return key.longValue();
     }
 
+    /** 正式编号回填：按主键更新，影响行数由业务层校验。 */
     @Override
     public int updateOrderNo(Long id, String orderNo) {
         return jdbcTemplate.update("UPDATE orders SET order_no = ? WHERE id = ?", orderNo, id);
     }
 
+    /** 订单详情：使用唯一订单号定位订单记录。 */
     @Override
     public Optional<Order> findByOrderNo(String orderNo) {
         List<Order> rows = jdbcTemplate.query(
@@ -124,6 +130,7 @@ public class JdbcOrderRepository implements OrderRepository {
         return rows.stream().findFirst();
     }
 
+    /** 买家订单分页：先按手机号统计总数，再按创建时间和主键倒序查询。 */
     @Override
     public PageResult<Order> findPage(long offset, int limit, String buyerPhone) {
         Long total = jdbcTemplate.queryForObject(

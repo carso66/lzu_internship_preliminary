@@ -6,7 +6,7 @@ import cn.edu.lzu.marketplace.model.PageResult;
 import java.util.Optional;
 
 /**
- * 订单数据访问接口。
+ * 订单数据访问接口。由订单服务调用，负责写入订单快照、编号回填和查询。
  */
 public interface OrderRepository {
 
@@ -17,7 +17,7 @@ public interface OrderRepository {
     Long insert(Order order);
 
     /**
-     * 回填正式订单号（由自增主键派生），返回受影响行数。
+     * 按主键回填正式订单号，返回受影响行数，供调用方确认恰好更新一条订单。
      */
     int updateOrderNo(Long id, String orderNo);
 

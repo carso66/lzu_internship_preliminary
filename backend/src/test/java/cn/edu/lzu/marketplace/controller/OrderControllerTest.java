@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 订单接口（L1）的 Web 层集成测试：加载完整上下文（含 JacksonConfig 严格整数
  * 反序列化与 GlobalExceptionHandler），仅 Mock 掉 OrderService 隔离业务层。
  *
- * <p>说明：本类不接触真实数据库（无 schema.sql），Repository SQL 属待联调项。
+ * <p>通过 OrderService 测试替身控制业务返回，断言覆盖 HTTP 响应与参数传递。
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -52,7 +52,7 @@ class OrderControllerTest {
             "{\"productId\":3,\"quantity\":2,\"buyerName\":\"张三\","
                     + "\"buyerPhone\":\"13800138000\",\"address\":\"兰州市城关区天水南路222号\"}";
 
-    // ---------- POST /api/orders ----------
+    // ① 创建订单：覆盖成功响应、请求体校验及业务错误映射。
 
     @Test
     void createReturns201WithServerComputedAmount() throws Exception {
@@ -161,7 +161,7 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.code").value(40401));
     }
 
-    // ---------- GET /api/orders/{orderNo} ----------
+    // ② 订单详情：核对订单查询成功与订单号不存在的响应。
 
     @Test
     void getByOrderNoReturnsOrder() throws Exception {
@@ -185,7 +185,7 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.message").value("订单不存在"));
     }
 
-    // ---------- GET /api/orders?buyerPhone=... ----------
+    // ③ 订单列表：核对手机号与分页参数的传递、校验和响应结构。
 
     @Test
     void listReturnsTotalPagePageSizeAndItems() throws Exception {

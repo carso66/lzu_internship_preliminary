@@ -9,6 +9,7 @@ package cn.edu.lzu.marketplace.common;
  */
 public record ApiResponse<T>(int code, String message, T data) {
 
+    // 成功响应：详情和列表携带业务数据，健康检查等场景可返回空数据。
     public static <T> ApiResponse<T> ok(T data) {
         return new ApiResponse<>(0, "ok", data);
     }

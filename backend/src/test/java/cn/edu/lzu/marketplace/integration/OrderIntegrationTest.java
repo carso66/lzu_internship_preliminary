@@ -18,11 +18,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 订单业务集成测试（L2-12 覆盖项 + 真实 H2 落库核对）。
+ * 订单业务集成测试：通过真实 HTTP 请求和 H2 数据核对订单链路。
  *
  * <p>与单元测试不同：这里不 Mock Service / Repository，而是通过 {@code RANDOM_PORT}
  * 启动真实 Tomcat，用 {@link TestRestTemplate} 走完整 HTTP → Controller → Service
- * → Repository 链路，落库到独立 H2 内存库 {@code jdbc:h2:mem:itest}（与其它测试隔离）。
+ * → Repository 链路，落库到独立 H2 内存库 {@code jdbc:h2:mem:itest}（与默认应用库分开）。
  * 断言直接查询数据库，验证库存、订单条数、金额与快照是否真实落库。
  */
 @SpringBootTest(
@@ -53,6 +53,7 @@ class OrderIntegrationTest {
         return restTemplate.postForEntity("/api/orders", body, String.class);
     }
 
+    // 正常下单：检查服务端金额、商品快照和扣减后的库存。
     @Test
     void normalOrderDeductsStockAndSnapshotsProduct() throws Exception {
         long productId = TestDb.insertProduct(jdbcTemplate, "考研数学复习全书", 4990L, 3, "on");
@@ -75,6 +76,7 @@ class OrderIntegrationTest {
         assertEquals(1L, TestDb.countOrdersFor(jdbcTemplate, productId), "应恰好新增 1 条订单");
     }
 
+    // 业务拒绝：库存不足时检查冲突响应与数据库状态。
     @Test
     void insufficientStockReturns409AndLeavesDataUnchanged() throws Exception {
         long productId = TestDb.insertProduct(jdbcTemplate, "库存告急商品", 100L, 1, "on");
@@ -87,6 +89,7 @@ class OrderIntegrationTest {
         assertEquals(0L, TestDb.countOrdersFor(jdbcTemplate, productId), "库存不足时不得产生新订单");
     }
 
+    // 参数拒绝：零购买数量应在请求校验阶段被拦截。
     @Test
     void zeroQuantityReturns400AndLeavesDataUnchanged() throws Exception {
         long productId = TestDb.insertProduct(jdbcTemplate, "零数量商品", 100L, 1, "on");

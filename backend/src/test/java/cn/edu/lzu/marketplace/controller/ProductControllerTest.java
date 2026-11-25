@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 商品接口（L0）的 Web 层集成测试：加载完整上下文（含 JacksonConfig 严格整数
  * 反序列化与 GlobalExceptionHandler），仅 Mock 掉 ProductService 隔离业务层。
  *
- * <p>说明：本类不接触真实数据库（无 schema.sql），Repository 相关 SQL 属于待联调项。
+ * <p>通过 ProductService 测试替身控制业务返回，断言覆盖 HTTP 响应与参数传递。
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -51,7 +51,7 @@ class ProductControllerTest {
             13L, "测试商品", 1990L, 10, "文具", "备注", "on", "校园数码铺",
             LocalDateTime.of(2026, 11, 24, 15, 0, 0));
 
-    // ---------- POST /api/products ----------
+    // ① 发布商品：核对创建响应和请求体字段约束。
 
     @Test
     void createReturns201WithIdAndDefaultStatus() throws Exception {
@@ -122,7 +122,7 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.message").value(containsString("stock")));
     }
 
-    // ---------- GET /api/products ----------
+    // ② 商品列表：核对组合筛选、分页字段和查询参数校验。
 
     @Test
     void listReturnsTotalPagePageSizeAndItems() throws Exception {
@@ -178,7 +178,7 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.message").value(containsString("status")));
     }
 
-    // ---------- GET /api/products/{id} ----------
+    // ③ 商品详情：覆盖按 ID 查询及资源不存在。
 
     @Test
     void getByIdReturnsProduct() throws Exception {
@@ -202,7 +202,7 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.message").value("商品不存在"));
     }
 
-    // ---------- PATCH /api/products/{id}/status ----------
+    // ④ 商品状态：覆盖上下架接口的响应、状态枚举校验和资源缺失。
 
     @Test
     void updateStatusReturns200WithIdAndStatus() throws Exception {

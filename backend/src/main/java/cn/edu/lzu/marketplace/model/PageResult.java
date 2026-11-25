@@ -3,7 +3,7 @@ package cn.edu.lzu.marketplace.model;
 import java.util.List;
 
 /**
- * 通用分页查询结果：total 为满足筛选条件的总条数，items 为当前页数据。
+ * 数据访问层的分页结果，包含匹配总数和当前页数据，由业务层补充页码并转换为响应 DTO。
  */
 public record PageResult<T>(long total, List<T> items) {
 }

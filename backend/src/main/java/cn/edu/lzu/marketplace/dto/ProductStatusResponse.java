@@ -1,7 +1,7 @@
 package cn.edu.lzu.marketplace.dto;
 
 /**
- * PATCH 上下架接口的响应 data：仅 id 与 status。
+ * 商品上下架响应 DTO，返回变更目标的标识和更新后的状态。
  */
 public record ProductStatusResponse(Long id, String status) {
 }

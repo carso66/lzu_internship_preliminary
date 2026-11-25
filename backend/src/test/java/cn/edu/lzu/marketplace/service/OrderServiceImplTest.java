@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
 /**
  * OrderService 单元测试：Mock 掉两个 Repository，验证下单的业务分支
  * （404/40902/40901、服务端算价、乘法溢出）、扣库存先于插订单的顺序、
- * 订单号回填，以及列表分页的 long 偏移防溢出。
+ * 订单号回填，以及列表分页的 long 偏移防溢出。数据库事务由独立的集成测试验证。
  */
 @ExtendWith(MockitoExtension.class)
 class OrderServiceImplTest {
@@ -63,6 +63,7 @@ class OrderServiceImplTest {
         return new CreateOrderRequest(productId, quantity, "张三", "13800138000", "兰州市城关区天水南路222号");
     }
 
+    // ① 创建成功：检查算价、扣库与插单的调用顺序，以及快照和编号回填。
     @Test
     void createComputesPriceFromServerAndDeductsBeforeInsert() {
         when(productRepository.findById(3L)).thenReturn(Optional.of(product(3L, 4990L, 10, Product.STATUS_ON)));
@@ -78,7 +79,7 @@ class OrderServiceImplTest {
         assertEquals(9980L, resp.totalAmount(), "总额 = 服务端单价 × 数量");
         assertEquals(Order.STATUS_CREATED, resp.status());
 
-        // 顺序：先扣库存，再插订单（保证事务内扣减先于写入）
+        // 核对两次仓储调用的先后顺序。
         InOrder inOrder = inOrder(productRepository, orderRepository);
         inOrder.verify(productRepository).deductStockIfAvailable(3L, 2);
         inOrder.verify(orderRepository).insert(any(Order.class));
@@ -101,12 +102,13 @@ class OrderServiceImplTest {
         assertEquals(resp.orderNo(), noCap.getValue());
     }
 
+    // ② 创建失败：覆盖回填、商品状态、库存变化及订单金额的溢出保护。
     @Test
     void createWhenOrderNoUpdateAffectsZeroRowsThrows() {
         when(productRepository.findById(3L)).thenReturn(Optional.of(product(3L, 4990L, 10, Product.STATUS_ON)));
         when(productRepository.deductStockIfAvailable(3L, 2)).thenReturn(1);
         when(orderRepository.insert(any(Order.class))).thenReturn(42L);
-        // 回填影响行数为 0：不得返回成功响应，必须抛运行时异常触发事务回滚
+        // 回填影响 0 行时断言服务抛出运行时异常，仓储在本用例中使用测试替身。
         when(orderRepository.updateOrderNo(eq(42L), anyString())).thenReturn(0);
 
         assertThrows(IllegalStateException.class, () -> service.create(request(3L, 2)));
@@ -151,7 +153,7 @@ class OrderServiceImplTest {
 
     @Test
     void createWhenDeductFailsByConcurrentOffSaleReturns40902() {
-        // 首次读取在售；并发把他下架，条件更新 0 行；重读发现已下架
+        // 模拟首次读取后商品下架，条件更新未命中时重读得到最新状态。
         when(productRepository.findById(3L))
                 .thenReturn(Optional.of(product(3L, 4990L, 10, Product.STATUS_ON)))
                 .thenReturn(Optional.of(product(3L, 4990L, 10, Product.STATUS_OFF)));
@@ -174,6 +176,7 @@ class OrderServiceImplTest {
         verify(productRepository, never()).deductStockIfAvailable(anyLong(), anyInt());
     }
 
+    // ③ 订单查询：覆盖详情缺失、快照映射和大页码偏移。
     @Test
     void getByOrderNoWhenMissingReturns40401() {
         when(orderRepository.findByOrderNo("SO2026112400001")).thenReturn(Optional.empty());

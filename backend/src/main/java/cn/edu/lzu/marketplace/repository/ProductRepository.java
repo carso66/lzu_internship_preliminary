@@ -6,7 +6,7 @@ import cn.edu.lzu.marketplace.model.Product;
 import java.util.Optional;
 
 /**
- * 商品数据访问接口。
+ * 商品数据访问接口。为商品服务提供持久化操作，为订单服务提供商品读取和条件扣减。
  */
 public interface ProductRepository {
 
@@ -41,7 +41,7 @@ public interface ProductRepository {
      * 返回受影响行数（1 表示扣减成功，0 表示因下架 / 库存不足 / 商品不存在而未扣减）。
      *
      * <p>更新条件同时校验 status 与剩余库存，避免「先查库存再无条件更新」的竞态：
-     * 并发下单时由数据库在行级锁上重新评估条件，不会把库存扣成负数。
+     * 在当前 H2 数据库中，同一商品的并发更新以执行时的库存及状态判定扣减。
      */
     int deductStockIfAvailable(Long id, int quantity);
 }

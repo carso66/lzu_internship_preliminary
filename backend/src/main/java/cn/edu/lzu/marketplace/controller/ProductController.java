@@ -23,21 +23,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 商品接口（L0）：
- * POST /api/products、GET /api/products、GET /api/products/{id}、
- * PATCH /api/products/{id}/status。
+ * 商品 HTTP 接口，负责请求绑定、参数校验和响应封装。
+ * 商品发布、查询和状态更新委托给 ProductService。
  */
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
 
+    // 通过构造器注入商品服务，控制器只依赖业务接口。
     private final ProductService productService;
 
     public ProductController(ProductService productService) {
         this.productService = productService;
     }
 
-    /** L0-2 发布商品：成功返回 201 + code 0 */
+    /** 发布商品：校验创建请求，交由业务层创建商品，成功返回 HTTP 201。 */
     @PostMapping
     public ResponseEntity<ApiResponse<ProductResponse>> create(
             @Valid @RequestBody ProductCreateRequest request) {
@@ -45,15 +45,14 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(created));
     }
 
-    /** L0-3 商品列表：keyword/status/category 组合筛选 + 分页 */
+    /** 商品列表：接收关键字、状态、分类与分页参数，按相同条件返回总数和当前页。 */
     @GetMapping
     public ApiResponse<ProductPageResponse> list(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false)
             @Pattern(regexp = "on|off", message = "status 只能是 on 或 off") String status,
             @RequestParam(required = false) String category,
-            // 注意：题目未对 page 设上限，大 page 应返回空列表(200)而非报错，
-            // 因此这里只校验下界；offset 溢出已由 Service 层用 long 计算兜底。
+            // 这里只校验页码下界。超出数据范围的合法页码可返回空列表，偏移量由业务层按 long 计算。
             @RequestParam(defaultValue = "1")
             @Min(value = 1, message = "page 从 1 开始") Integer page,
             @RequestParam(defaultValue = "10")
@@ -62,13 +61,13 @@ public class ProductController {
         return ApiResponse.ok(productService.list(page, pageSize, keyword, status, category));
     }
 
-    /** L0-4 商品详情：不存在 → 404 + 40401（由 Service 抛 BusinessException） */
+    /** 商品详情：按商品 ID 查询，不存在时返回 HTTP 404 和业务码 40401。 */
     @GetMapping("/{id}")
     public ApiResponse<ProductResponse> getById(@PathVariable Long id) {
         return ApiResponse.ok(productService.getById(id));
     }
 
-    /** L0-5 上下架：status 仅 on/off，否则 400 + 40001 */
+    /** 上下架：校验请求状态仅为 on 或 off，并返回更新后的状态。 */
     @PatchMapping("/{id}/status")
     public ApiResponse<ProductStatusResponse> updateStatus(
             @PathVariable Long id,

@@ -35,8 +35,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * OrderRepository 单元测试：Mock JdbcTemplate，直接断言最终传给 JDBC 的 SQL 文本
- * 和占位符参数顺序，尤其盯住「LIMIT/OFFSET 顺序」与「库存扣减条件」这类易错点。
+ * 模拟 JdbcTemplate，检查订单查询、插入和编号回填的 SQL 与占位符实参。
  *
  * <p>通过 {@code mockingDetails(...).getInvocations()} 读取真实记录的调用参数
  * （varargs 已展开），避免 Mockito 在变长参数捕获上的匹配歧义。
@@ -83,6 +82,7 @@ class JdbcOrderRepositoryTest {
         return out;
     }
 
+    // ① 订单查询：核对手机号、分页参数及详情查询的绑定，并检查稳定排序。
     @Test
     void findPageBindsBuyerPhoneThenLimitThenOffset() {
         repository.findPage(20L, 10, "13800138000");
@@ -112,6 +112,7 @@ class JdbcOrderRepositoryTest {
         assertEquals(List.of("SO202611190001"), bound);
     }
 
+    // ② 订单写入：核对编号回填的参数和插入语句的列顺序。
     @Test
     void updateOrderNoBindsOrderNoBeforeId() {
         repository.updateOrderNo(5L, "SO2026111900005");

@@ -94,7 +94,7 @@ class GlobalExceptionHandlerTest {
         }
     }
 
-    // ---------- 业务异常：README 第 3 节的码表逐一核对 ----------
+    // ① 业务异常：核对库存不足、已下架、已支付及资源不存在的状态和业务码。
 
     @Test
     void businessStockInsufficientReturns409And40901() throws Exception {
@@ -128,7 +128,7 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.code").value(40401));
     }
 
-    // ---------- 整数字段的严格类型：字符串数字 / 小数 / 空串必须拒绝 ----------
+    // ② JSON 整数类型：接受整数，拒绝字符串数字、小数和空串。
 
     @Test
     void integerFieldAcceptsPlainInteger() throws Exception {
@@ -161,7 +161,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void integerFieldRejectsFloatWithZeroFraction() throws Exception {
-        // 1990.0 数学上等于整数，但默认 Jackson 会静默截断，这里同样拒绝
+        // 小数部分为 0 时仍属于 JSON 小数输入，严格整数配置同样拒绝。
         mockMvc.perform(post("/_test/int")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"value\":1990.0}"))
@@ -178,7 +178,7 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.code").value(40001));
     }
 
-    // ---------- 请求体本身的问题 ----------
+    // ③ 请求体错误：区分 JSON 语法错误与 Bean Validation 字段错误。
 
     @Test
     void malformedJsonReturns400And40001() throws Exception {
@@ -202,7 +202,7 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.message").value(containsString("name")));
     }
 
-    // ---------- 路径 / 查询参数的问题 ----------
+    // ④ 路径和查询参数：覆盖必传参数缺失、类型不匹配及未知路径。
 
     @Test
     void missingRequiredParamReturns400And40001() throws Exception {
@@ -227,7 +227,7 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.code").value(40401));
     }
 
-    // ---------- 兜底 500：不泄露内部信息 ----------
+    // ⑤ 兜底 500：检查固定响应文案与内部异常信息的隔离。
 
     @Test
     void unexpectedExceptionReturns500And50000WithoutDetails() throws Exception {
@@ -241,7 +241,7 @@ class GlobalExceptionHandlerTest {
                 .andExpect(content().string(not(containsString("at cn.edu"))));
     }
 
-    // ---------- 本轮审查新增：HTTP 协议层错误与方法级校验 ----------
+    // ⑥ HTTP 协议错误：方法或媒体类型不支持时返回相应的 405 或 415。
 
     @Test
     void wrongHttpMethodShouldBe405NotFallback500() throws Exception {
@@ -263,8 +263,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void unknownJsonFieldIsIgnoredByDefault() throws Exception {
-        // 核实 Spring Boot 默认行为：未知字段是否被拒绝（修复前对现状的确认测试，
-        // 本轮不改变策略，见审查问题 2）
+        // 验证未知 JSON 字段会被忽略，已知字段可正常反序列化。
         mockMvc.perform(post("/_test/int")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"value\":2,\"notAField\":3}"))
@@ -272,6 +271,7 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.code").value(0));
     }
 
+    // ⑦ 方法级校验：检查参数缺失、越界和合法输入的响应。
     @Test
     void requestParamOutOfRangeShouldBe40001NotFallback500() throws Exception {
         mockMvc.perform(get("/_test/range").param("page", "0"))

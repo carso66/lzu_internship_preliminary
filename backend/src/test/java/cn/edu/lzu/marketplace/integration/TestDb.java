@@ -20,7 +20,7 @@ final class TestDb {
     private TestDb() {
     }
 
-    /** 清空两张表，保证每个测试方法从干净状态开始（先删订单再删商品，满足外键顺序）。 */
+    /** 先删订单再删商品以满足外键约束，自增序列沿用当前数据库的值。 */
     static void reset(JdbcTemplate jt) {
         jt.update("DELETE FROM orders");
         jt.update("DELETE FROM products");
@@ -47,6 +47,7 @@ final class TestDb {
         return keyHolder.getKey().longValue();
     }
 
+    // 数据库断言辅助：直接读取库存和订单数，独立于 HTTP 响应。
     /** 读取商品当前库存。 */
     static int stockOf(JdbcTemplate jt, long productId) {
         Integer stock = jt.queryForObject("SELECT stock FROM products WHERE id = ?", Integer.class, productId);

@@ -5,7 +5,7 @@ import cn.edu.lzu.marketplace.dto.OrderPageResponse;
 import cn.edu.lzu.marketplace.dto.OrderResponse;
 
 /**
- * 订单业务接口。
+ * 供订单控制器调用的业务接口，统一下单与订单查询的请求和返回类型。
  */
 public interface OrderService {
 
@@ -20,7 +20,7 @@ public interface OrderService {
     OrderResponse getByOrderNo(String orderNo);
 
     /**
-     * 按买家手机号分页查询，创建时间倒序。
+     * 按买家手机号分页查询，创建时间倒序，同一时间按订单主键倒序。
      */
     OrderPageResponse list(Integer page, Integer pageSize, String buyerPhone);
 }

@@ -63,9 +63,10 @@ class JdbcProductRepositoryTest {
         return out;
     }
 
+    // ① 商品分页：检查过滤条件、LIKE 字面量匹配和分页参数的绑定顺序。
     @Test
     void findPageBindsLimitBeforeOffset() {
-        // 第 1 页：offset=0, limit=10 —— 修复前会错误地绑定成 LIMIT 0 OFFSET 10
+        // 首页应绑定 LIMIT 10、OFFSET 0，对调时将会查不到条目。
         repository.findPage(0L, 10, null, null, null);
 
         Invocation inv = invocationWithSql("LIMIT ? OFFSET ?");
@@ -112,6 +113,7 @@ class JdbcProductRepositoryTest {
         assertEquals(List.of("%书%", "on", "文具", 10, 20L), bound);
     }
 
+    // ② 单商品读写：核对按 ID 查询、状态更新及条件扣库的绑定参数。
     @Test
     void findByIdBindsIdAsSingleParam() {
         repository.findById(7L);
@@ -135,7 +137,7 @@ class JdbcProductRepositoryTest {
         repository.deductStockIfAvailable(3L, 2);
 
         Invocation inv = invocationWithSql("UPDATE products SET stock = stock - ?");
-        // 条件更新：同时约束 id / status / 剩余库存，防止超卖与对下架商品扣减
+        // 单元测试核对条件 UPDATE 的 SQL 和参数，真实并发结果由 OrderConcurrencyTest 验证。
         assertEquals("UPDATE products SET stock = stock - ? WHERE id = ? AND status = ? AND stock >= ?",
                 inv.getArguments()[0]);
         List<Object> bound = boundArgs(inv, 1);

@@ -19,21 +19,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 订单接口（L1）：
- * POST /api/orders、GET /api/orders/{orderNo}、
- * GET /api/orders?buyerPhone=...&page=...&pageSize=...
+ * 订单 HTTP 接口。接收并校验请求，委托 OrderService 处理订单业务，
+ * 再使用统一响应结构返回结果。库存与事务规则由业务层负责。
  */
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
 
+    // ① 通过构造器注入订单服务，以接口衔接控制层与业务层。
     private final OrderService orderService;
 
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
     }
 
-    /** L1-6 下单：成功返回 201 + code 0 */
+    // ② 创建订单
+    // 请求体反序列化后由 Bean Validation 校验，订单服务完成下单后返回 HTTP 201 和订单快照。
     @PostMapping
     public ResponseEntity<ApiResponse<OrderResponse>> create(
             @Valid @RequestBody CreateOrderRequest request) {
@@ -41,13 +42,15 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(created));
     }
 
-    /** L1-7 按订单号查详情：不存在 → 404 + 40401（由 Service 抛 BusinessException） */
+    // ③ 订单详情
+    // 按正式订单号查找单笔订单，不存在时由异常处理器映射为 HTTP 404 和业务码 40401。
     @GetMapping("/{orderNo}")
     public ApiResponse<OrderResponse> getByOrderNo(@PathVariable String orderNo) {
         return ApiResponse.ok(orderService.getByOrderNo(orderNo));
     }
 
-    /** L1-8 按买家手机号查询订单列表（分页 + 创建时间倒序） */
+    // ④ 订单列表
+    // 按买家手机号分页查询。Spring MVC 校验页码和页大小，业务层返回按创建时间倒序的数据。
     @GetMapping
     public ApiResponse<OrderPageResponse> list(
             @RequestParam String buyerPhone,

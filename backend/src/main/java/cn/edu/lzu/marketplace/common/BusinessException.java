@@ -8,6 +8,7 @@ package cn.edu.lzu.marketplace.common;
  */
 public class BusinessException extends RuntimeException {
 
+    // 将业务错误码与可展示的提示一起交给全局异常处理器。
     private final ErrorCode errorCode;
 
     /** 使用错误码的默认文案 */

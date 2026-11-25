@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
  */
 public enum ErrorCode {
 
+    // 核心业务码：供业务层抛出异常及 Web 层生成响应。
     /** 成功；实际 HTTP 为 200/201，由具体接口决定 */
     SUCCESS(0, "ok", HttpStatus.OK),
 
@@ -25,15 +26,13 @@ public enum ErrorCode {
     /** 商品已下架 */
     PRODUCT_OFF_SALE(40902, "商品已下架", HttpStatus.CONFLICT),
 
-    /** 订单已支付，不可重复支付 */
+    /** 为支付场景保留的错误码 */
     ORDER_ALREADY_PAID(40903, "订单已支付，不可重复支付", HttpStatus.CONFLICT),
 
     /** 服务出错：仅返回固定文案，不包含堆栈等内部细节 */
     INTERNAL_ERROR(50000, "服务内部错误", HttpStatus.INTERNAL_SERVER_ERROR),
 
-    // ---- 以下两个业务码不在 README 第 3 节码表内，是考自定义的码（非 0），
-    // 按对应 HTTP 标准语义（405/415）划分，不复用/不改变已有码的含义。
-    // 需在 SUBMISSION.md 中向评审说明。----
+    // 协议错误码：按 HTTP 405、415 的语义单独映射，与接口参数校验区分。
 
     /** HTTP 方法不被支持，如 GET 接口用 POST 调用 */
     METHOD_NOT_ALLOWED(40501, "请求方法不被支持", HttpStatus.METHOD_NOT_ALLOWED),

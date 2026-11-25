@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS products (
     seller_name VARCHAR(50)   NOT NULL,
     -- 创建时间，由 Service 层写入（LocalDateTime.now()），非空
     created_at  TIMESTAMP     NOT NULL,
+    -- 在应用校验之外，由数据库约束保证库存、价格和状态的取值范围。
     CONSTRAINT ck_products_price_non_negative CHECK (price >= 0),
     CONSTRAINT ck_products_stock_non_negative CHECK (stock >= 0),
     CONSTRAINT ck_products_status CHECK (status IN ('on', 'off'))
@@ -72,8 +73,9 @@ CREATE TABLE IF NOT EXISTS orders (
     status        VARCHAR(10)   NOT NULL DEFAULT 'created',
     -- 创建时间，由 Service 层写入，非空
     created_at    TIMESTAMP     NOT NULL,
-    -- 支付时间，L2 支付链路写入，可空
+    -- 预留的支付时间，创建订单时留空
     paid_at       TIMESTAMP,
+    -- 订单号唯一，金额与数量受 CHECK 限制，商品引用由外键保证。
     CONSTRAINT uq_orders_order_no UNIQUE (order_no),
     CONSTRAINT ck_orders_quantity_positive CHECK (quantity > 0),
     CONSTRAINT ck_orders_unit_price_non_negative CHECK (unit_price >= 0),

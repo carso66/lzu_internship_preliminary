@@ -27,17 +27,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 全局异常处理：把所有错误统一收敛为 {code, message, data} 结构。
- *
- * <p>业务码与 HTTP 状态的对应严格遵循 README 第 3 节；
- * 未预期异常一律 50000 + 固定文案，堆栈只写日志，不下发客户端。
+ * 将 Spring MVC 捕获的业务、参数和协议异常转换为统一响应。
+ * 未预期异常返回固定的 50000 提示，异常堆栈仅记录在服务端。
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /** 业务异常：HTTP 状态与业务码由 ErrorCode 决定，message 为面向客户端的提示 */
+    // ① 业务异常：沿用 Service 提供的业务码及客户端可读提示。
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException ex) {
         ErrorCode ec = ex.getErrorCode();
@@ -45,6 +43,7 @@ public class GlobalExceptionHandler {
         return build(ec, ex.getMessage());
     }
 
+    // ② 参数校验与绑定：收集字段提示，统一映射为 40001。
     /** @Valid 校验 @RequestBody 对象失败：message 指出具体字段 */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleBodyValidation(MethodArgumentNotValidException ex) {
@@ -54,7 +53,7 @@ public class GlobalExceptionHandler {
         return handleParamInvalid("请求参数校验失败", detail);
     }
 
-    /** 查询参数对象绑定 + @Valid 失败（如 @ParameterObject 风格的 DTO） */
+    /** 请求参数绑定到对象后产生的绑定或校验错误。 */
     @ExceptionHandler(BindException.class)
     public ResponseEntity<ApiResponse<Void>> handleBind(BindException ex) {
         String detail = ex.getBindingResult().getFieldErrors().stream()
@@ -63,7 +62,7 @@ public class GlobalExceptionHandler {
         return handleParamInvalid("请求参数校验失败", detail);
     }
 
-    /** @Validated 方法级参数校验失败（如 @RequestParam 上的 @Min/@Max） */
+    /** 处理 Jakarta Validation 抛出的方法约束异常，提取属性路径末段作为参数名。 */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException ex) {
         String detail = ex.getConstraintViolations().stream()
@@ -87,6 +86,7 @@ public class GlobalExceptionHandler {
         return handleParamInvalid("参数类型错误", ex.getName());
     }
 
+    // ③ JSON 反序列化失败：优先定位出错字段，无法定位时返回请求体格式提示。
     /** 请求体 JSON 格式错误、字段类型错误（含整数字段收到字符串/小数，见 JacksonConfig） */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
@@ -99,14 +99,13 @@ public class GlobalExceptionHandler {
         if (cause instanceof JsonMappingException jme) {
             String field = describePath(jme);
             if (!field.isEmpty()) {
-                // 不特指整数：任何类型的字段都可能有取值/类型问题
                 return handleParamInvalid("字段 [" + field + "] 取值不合法或类型错误", null);
             }
         }
         return handleParamInvalid("请求体 JSON 格式错误", null);
     }
 
-    /** Content-Type 不支持：按 HTTP 标准语义返回 415 + 自定码 41501（见 ErrorCode 注释） */
+    // ④ HTTP 协议错误：为不支持的媒体类型和请求方法返回各自的状态与业务码。
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiResponse<Void>> handleMediaType(HttpMediaTypeNotSupportedException ex) {
         log.warn("Content-Type 不支持: {}", ex.getContentType());
@@ -129,9 +128,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Spring Framework 6.1+ 内建方法级校验：@RequestParam/@PathVariable 参数上的
-     * @Min/@Max/@NotNull 等约束失败时抛 HandlerMethodValidationException。
-     * 若不单独处理，会落入 Exception 兜底把非法参数误判为 500。
+     * Spring MVC 内建方法校验失败时，汇总查询参数和路径变量的约束提示。
+     * 商品和订单列表的分页范围校验由此映射为 40001。
      */
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<ApiResponse<Void>> handleHandlerMethodValidation(HandlerMethodValidationException ex) {
@@ -156,6 +154,7 @@ public class GlobalExceptionHandler {
         return build(ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.defaultMessage());
     }
 
+    // ⑤ 响应构建：汇总校验提示，由错误码决定响应的 HTTP 状态。
     private ResponseEntity<ApiResponse<Void>> handleParamInvalid(String what, String detail) {
         String message = (detail == null || detail.isEmpty()) ? what : what + ": " + detail;
         log.warn("参数错误: {}", message);
