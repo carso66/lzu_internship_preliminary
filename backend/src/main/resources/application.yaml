@@ -1,4 +1,22 @@
+server:
+  port: 8080
+
 spring:
   application:
     name: backend
-
+  datasource:
+    url: jdbc:mysql://localhost:3306/xy_lzu?useUnicode=true&characterSet=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
+    password: Fy123456
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+      dialect: org.hibernate.dialect.MySQL8Dialect
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
