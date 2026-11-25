@@ -4,7 +4,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Spring Boot 3.5.16：3.x 系列最后一个正式版本（之后进入 4.x），Java 17 基线 -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -33,7 +32,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- JDBC + H2：本阶段只用内存库验证工程能启动 -->
+        <!-- JDBC + H2：文件库持久化 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
@@ -65,5 +64,19 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
         </plugins>
+
+        <!-- 保留 src/main/resources，同时把唯一的 backend/schema.sql 复制到 classpath 根目录 -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${project.basedir}</directory>
+                <includes>
+                    <include>schema.sql</include>
+                </includes>
+                <targetPath>.</targetPath>
+            </resource>
+        </resources>
     </build>
 </project>
