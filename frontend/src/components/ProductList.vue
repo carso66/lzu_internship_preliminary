@@ -1,6 +1,8 @@
 <script setup>
 // 引入金额换算函数：把"分"转成"¥xx.xx"格式
 import { fenToYuan } from '../utils/money'
+// 购买面板：每张卡片里嵌一个
+import BuyPanel from './BuyPanel.vue'
 
 // 定义 props：父组件（App.vue）传下来的数据
 // products：商品数组
@@ -16,10 +18,17 @@ defineProps({
   }
 })
 
-// 这个组件会向父组件发两种事件：
+// 这个组件会向父组件发三种事件：
 // 'toggle'：点上/下架按钮时触发
 // 'clear-query'：点"清空筛选"按钮时触发
-const emit = defineEmits(['toggle', 'clear-query'])
+// 'ordered'：BuyPanel 下单成功时，往上转告 App 去刷新数据
+const emit = defineEmits(['toggle', 'clear-query', 'ordered'])
+
+// 只是转告，这里不做任何业务判断 —— products 不是我的数据，我没权改
+// payload 是 { productId, orderNo }，原样往上抛，中间层不该拆开来看
+function onOrdered(payload) {
+  emit('ordered', payload)
+}
 
 </script>
 
@@ -79,6 +88,10 @@ const emit = defineEmits(['toggle', 'clear-query'])
           {{ product.status === 'on' ? '下架' : '上架' }}
         </button>
       </div>
+
+      <!-- 每个卡片一个购买面板：整个 product 传下去，面板自己读 price / stock / status -->
+      <!-- 它下单成功后，由上面的 onOrdered 再往上转一层给 App -->
+      <BuyPanel :product="product" @ordered="onOrdered" />
 
     </div>
   </div>

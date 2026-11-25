@@ -42,6 +42,12 @@ const keyword = ref('')
 // 选中的分类，初始值是空字符串（全部）
 const category = ref('')
 
+// 全站唯一的"操作成功"提示条。
+// 挂在 App 而不是卡片里，是因为 search() 会把列表整块卸载重建
+// （v-if 是销毁不是隐藏），卡片里的本地状态活不过那一次刷新。
+// App 自己永远不销毁，所以提示放它身上才留得住。
+const notice = ref('')
+
 // 搜索：重新请求 API，把 keyword 和 category 传给服务器
 async function search() {
   loading.value = true
@@ -57,6 +63,14 @@ async function search() {
   } finally {
     loading.value = false
   }
+}
+
+// 卡片里的 BuyPanel 下单成功 → ProductList 转告 → 落到这里
+// payload 是 { productId, orderNo }，orderNo 是服务器生成的，不是我拼的
+async function onOrdered(payload) {
+  notice.value = `下单成功，订单号 ${payload.orderNo}`
+  // 重拉列表，库存数字才会跟着变
+  await search()
 }
 
 // 清空筛选：把关键词和分类清空，重新加载全部商品
@@ -103,13 +117,19 @@ onMounted(() => {
     <!-- @created="search"：子组件 emit('created') 时触发，正好复用 search 把新商品刷出来 -->
     <PublishForm @created="search" />
 
+    <!-- 操作成功提示条：App 不会被卸载，所以这条消息能活过列表重拉 -->
+    <p v-if="notice" class="notice">{{ notice }}</p>
+
     <!-- 把 products 和 loading 传给 ProductList 组件 -->
     <!-- :products 和 :loading 前面的冒号表示"传的是变量的值"，不是字符串 -->
+    <!-- @ordered="onOrdered"：BuyPanel 下单成功 → ProductList 转告 → 这里写提示并重拉列表。
+         谁拥有数据谁负责更新，所以刷新只能做在 App -->
     <ProductList
       :products="products"
       :loading="loading"
       @toggle="onToggle"
       @clear-query="clearQuery"
+      @ordered="onOrdered"
     />
   </div>
 </template>
@@ -151,5 +171,16 @@ onMounted(() => {
 }
 .filters button:hover {
   background: #f5f5f5;
+}
+
+/* 操作成功提示条：配色和发布表单的成功提示、商品卡片的「在售」徽标同一套绿 */
+/* 全站只有一种绿，这是 DESIGN.md 第 5 节能写的一条取舍 */
+.notice {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: #e6f7e6;
+  color: #2d7a2d;
+  font-size: 13px;
 }
 </style>
