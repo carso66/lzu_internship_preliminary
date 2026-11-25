@@ -26,6 +26,10 @@ function Invoke-TestRequest {
         '--write-out', '\n__HTTP_META__:%{http_code}|%{content_type}'
     )
 
+    if (($Method -eq 'POST' -and $Path -eq '/api/products') -or
+        ($Method -eq 'PATCH' -and $Path -match '^/api/products/[^/]+/status$')) {
+        $curlArgs += @('--header', ('Authorization: Bearer ' + $script:AccessToken))
+    }
     if ($Method -eq 'POST') {
         $curlArgs += @('--header', 'Content-Type: application/json', '--data-binary', '@-')
         $raw = ($Body | & curl.exe @curlArgs) -join "`n"
@@ -96,6 +100,10 @@ function Invoke-Check {
 try {
     Get-Command curl.exe -ErrorAction Stop | Out-Null
     Write-Host "Target: $BaseUrl"
+    $login = Invoke-TestRequest -Method 'POST' -Path '/api/auth/login' -Body '{"username":"demo","password":"demo123"}'
+    Assert-Response -Response $login -Status 200 -Code 0 -Message 'ok'
+    $script:AccessToken = [string]$login.Json.data.token
+    if ([string]::IsNullOrWhiteSpace($script:AccessToken)) { throw 'Login did not return a token' }
     Write-Host 'This script creates one valid test product. Keep other clients idle during the test.'
     $initialCount = Get-ProductCount
     Write-Host "Initial product count: $initialCount"

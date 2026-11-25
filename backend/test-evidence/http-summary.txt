@@ -1,0 +1,5 @@
+Target: http://localhost:50812
+Only L2-11 and L2-12 are selected for this version.
+test-l0-validation | exit=0 | RESULT: 8 passed, 0 failed.
+test-l1-validation | exit=0 | RESULT: 22 passed, 0 failed.
+test-l2-validation | exit=0 | RESULT: 11 passed, 0 failed.

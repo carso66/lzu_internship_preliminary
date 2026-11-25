@@ -1,6 +1,7 @@
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.104 s -- in com.example.demo.DemoApplicationTests
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.014 s -- in com.example.demo.OrderIntegrationTest
-[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.391 s -- in com.example.demo.AuthIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.558 s -- in com.example.demo.DemoApplicationTests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.865 s -- in com.example.demo.OrderIntegrationTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
-[INFO] Total time:  20.386 s
-[INFO] Finished at: 2026-11-25T22:20:32+08:00
+[INFO] Total time:  19.780 s
+[INFO] Finished at: 2026-11-25T22:53:33+08:00

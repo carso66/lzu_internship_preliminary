@@ -1,0 +1,15 @@
+Target: http://localhost:50812
+Creates 1 product and 1 order. Does not delete existing data.
+PASS: public health
+PASS: login
+PASS: publish without token
+PASS: publish with unknown token
+PASS: publish with valid token
+PASS: public product detail
+PASS: status without token
+PASS: valid token takes product off
+PASS: off product still rejects orders
+PASS: valid token puts product on
+PASS: create order without token
+RESULT: 11 passed, 0 failed.
+Run mvnw.cmd test for the complete JUnit suite.

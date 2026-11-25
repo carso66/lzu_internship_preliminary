@@ -1,4 +1,4 @@
-# 提交说明（L0＋L1 阶段）
+# 提交说明（L0＋L1＋L2 鉴权与测试）
 
 ## 基本信息
 
@@ -8,7 +8,7 @@
 | 学号 | `220250946261`         |
 | 方向 | 后端 `[BE]`              |
 | 分支 | `220250946261`         |
-| 当前范围 | L0 商品管理、L1 订单；同时申报 L2-10 并发不超卖、L2-12 自动化测试 |
+| 当前范围 | L0 商品管理、L1 订单；L2 仅申报 L2-11 最简鉴权、L2-12 自动化测试 |
 | 实际投入 | 未单独统计，待本人补充            |
 
 本文件是阶段性提交说明。最终提交前继续完善设计和 AI 使用记录。
@@ -65,20 +65,42 @@ Password: 留空
 |---|---|
 | L0 | 5/5 项已实现：建表、发布商品、列表筛选分页、详情、上下架 |
 | L1 | 下单、事务扣库存、订单详情和手机号分页查询均已实现 |
-| L2 | 申报 L2-10 并发不超卖、L2-12 自动化测试；支付、鉴权、EXPLAIN 对比未实现 |
+| L2 | 仅申报 L2-11 最简鉴权、L2-12 自动化测试；不提交支付链路或索引实验 |
 
 ## 已实现接口
 
 | 方法 | 路径 | 行为 |
 |---|---|---|
 | GET | `/api/health` | 健康检查，200 |
-| POST | `/api/products` | 发布商品，成功 201 |
+| POST | `/api/auth/login` | 固定账号登录，200，返回随机 token |
+| POST | `/api/products` | 需有效 Bearer token；发布成功 201 |
 | GET | `/api/products` | 列表、组合筛选和分页，200 |
 | GET | `/api/products/{id}` | 商品详情，200；不存在 404 |
-| PATCH | `/api/products/{id}/status` | `on` / `off` 上下架，200 |
+| PATCH | `/api/products/{id}/status` | 需有效 Bearer token；`on` / `off` 上下架，200 |
 | POST | `/api/orders` | 下单，成功 201；校验、扣库存与插单事务 |
 | GET | `/api/orders/{orderNo}` | 按订单号查询，200；不存在 404 |
 | GET | `/api/orders` | 按 buyerPhone 分页查询，200 |
+
+### 最简鉴权（L2-11）
+
+固定演示账号：`demo`，密码：`demo123`。`POST /api/auth/login` 请求：
+
+```json
+{"username":"demo","password":"demo123"}
+```
+
+成功响应 data 为 `{"token":"随机字符串"}`。发布商品、上下架请求携带 `Authorization: Bearer <token>`；缺少或无效 token 返回 401/40101 和统一 JSON。错误账号密码返回 40101，缺失或非法登录字段返回 40001。
+
+PowerShell 获取 token：
+
+```powershell
+$login = Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/auth/login" -ContentType "application/json" -Body '{"username":"demo","password":"demo123"}'
+$token = $login.data.token
+```
+
+原 curl 商品写请求增加 `-H "Authorization: Bearer $token"`。查询和下单不要求 token。三份验收脚本自动登录。
+
+token 使用 SecureRandom 生成 32 字节随机值，Base64URL 无填充编码，保存在进程内并发 Set；服务重启后失效。按题目不实现用户表、角色、过期、注销或 JWT。
 
 ### 发布商品
 
@@ -146,14 +168,13 @@ GET /api/products?keyword=Notebook&status=on&category=Stationery&page=1&pageSize
 |---|---|---|
 | 0 | 200 / 201 | 成功 |
 | 40001 | 400 | 参数校验、类型错误、非法 JSON |
+| 40101 | 401 | 缺少或无效 token、账号密码错误 |
 | 40401 | 404 | 商品、订单或请求路径不存在 |
 | 40901 | 409 | 库存不足 |
 | 40902 | 409 | 商品已下架 |
 | 40501 | 405 | 请求方法不支持 |
 | 41501 | 415 | 请求内容类型不支持 |
 | 50000 | 500 | 服务内部错误 |
-
-重复支付的 40903 业务码已预留，但支付接口尚未实现，不作为当前完成项。
 
 ## 测试与复核
 
@@ -169,7 +190,8 @@ GET /api/products?keyword=Notebook&status=on&category=Stationery&page=1&pageSize
 
 - `test-evidence/com.example.demo.OrderIntegrationTest.txt`：5 项，0 失败、0 错误、0 跳过。
 - `test-evidence/com.example.demo.DemoApplicationTests.txt`：1 项，0 失败、0 错误、0 跳过。
-- 本次待提交 L1 版本在隔离副本实际运行 mvn -B -ntp clean test，合计 6 项通过；报告为本次实际生成文件。摘要见 test-evidence/maven-test-summary.txt。
+- `test-evidence/com.example.demo.AuthIntegrationTest.txt`：5 项，0 失败、0 错误、0 跳过。
+- 本次精简提交版本在隔离副本实际运行 mvn -B -ntp clean test，合计 11 项通过。报告和摘要均为该版本本次实际生成文件。
 
 OrderIntegrationTest 使用真实 HTTP、随机本地端口和独立 H2 数据库 `order_integration_test`，不会操作正在运行的 8080 服务的数据库。测试类和方法没有外层测试事务，服务事务由 Spring 管理的 OrderService.create 创建。
 
@@ -187,7 +209,15 @@ OrderIntegrationTest 使用真实 HTTP、随机本地端口和独立 H2 数据�
 .\mvnw.cmd "-Dtest=OrderIntegrationTest" test
 ```
 
-### L2-10 并发不超卖：复跑方式
+### 鉴权测试（L2-11）
+
+```powershell
+.\mvnw.cmd "-Dtest=AuthIntegrationTest" test
+```
+
+5 项验证：两次登录 token 不同且均有效；错误账号密码与字段类型；缺少/非法 token 对两处写接口返回统一 401 且数据不变；合法 token 下发布/上下架及原参数校验；查询和下单仍可匿名。使用独立 auth_integration_test 内存库、真实 HTTP 和随机端口。
+
+### 订单库存并发回归
 
 ```powershell
 .\mvnw.cmd "-Dtest=OrderIntegrationTest#concurrentOrdersDoNotOversell" test
@@ -201,7 +231,9 @@ OrderIntegrationTest 使用真实 HTTP、随机本地端口和独立 H2 数据�
 
 ### 手动接口验收
 
-本次将待提交的 L1 快照启动到随机本地端口，实际运行 scripts/test-l1-validation.ps1，22 项全部通过；原始输出已归档到 test-evidence/test-l1-validation-output.txt。此版本还未加入 token 鉴权，脚本无需登录。
+本次将只含两项 L2 的提交版本启动到随机本地端口 http://localhost:50812，实际运行三份脚本：L0 8 项、L1 22 项、L2 鉴权 11 项全部通过，共 41 项检查。原始输出与退出码记录归档于 test-evidence。脚本与 JUnit 数量分开统计。
+
+默认部署端口和三份脚本的 BaseUrl 都是 8080。本次为避免占用现有服务，启动时显式传 --server.port=0 获取随机端口，再用 -BaseUrl 传给脚本，不要求更改默认配置。
 
 脚本已放入仓库。启动最新服务后，另开终端，在 backend 工作目录执行：
 
@@ -217,7 +249,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-l1-valida
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-l1-validation.ps1 *>&1 | Tee-Object -FilePath "C:\Temp\l1-http-test.log"
 ```
 
-原有 `scripts/test-l0-validation.ps1` 仍可复跑 L0 字段提示等检查；不根据脚本存在预先宣称通过。
+其余脚本：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-l0-validation.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-l2-validation.ps1
+```
+
+使用其他端口时，在命令后增加 `-BaseUrl http://localhost:实际端口`。
+L0 脚本新增 1 件商品；L1 新增 3 件商品、3 条订单；L2 鉴权脚本新增 1 件商品、1 条订单。均不删除原有数据。L2 脚本验证登录、无效 token、有效 token 发布/上下架、匿名查询/下单等 11 项。
 
 数据库人工复核：
 
@@ -229,10 +269,10 @@ FROM orders ORDER BY created_at DESC, id DESC;
 
 ## 未完成和已知限制
 
-- 支付及 payments 表、鉴权未实现；它们为其他选做项，不影响已实现的 L1。
-- 申报的 L2 项目为 L2-10、L2-12；没有进行索引前后 EXPLAIN 对比，不申报 L2-13。
+- 当前只提供商品、订单和最简登录；支付链路、payments 表及索引实验不在本次提交范围。
+- 仅申报 L2-11、L2-12，两项合计按题目封顶；保留的 L1 并发库存回归不单独申报 L2-10。
 - 内存数据库在应用进程退出后丢失数据，需要重新准备手动测试数据。
-- 当前没有用户表，按题目使用姓名和手机号等简化字段，不提供身份或角色权限保证。
+- 当前是固定演示账号的 token 鉴权，没有用户表或角色；订单查询不校验用户归属。
 - 列表 COUNT 和 SELECT 是两次查询，没有承诺并发写入下共享同一查询快照。
 - 并发测试验证了响应和最终数据，未单独测量行锁的阻塞时长。
 - AI_USAGE 最终总结、平台模型和费用记录由本人随后补充；本次不提交其本地草稿更新。

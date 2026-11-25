@@ -21,6 +21,10 @@ function Send-Api {
         '--request', $Method, '--url', ($BaseUrl + $Path),
         '--header', 'Accept: application/json',
         '--write-out', '\n__HTTP_META__:%{http_code}|%{content_type}')
+    if (($Method -eq 'POST' -and $Path -eq '/api/products') -or
+        ($Method -eq 'PATCH' -and $Path -match '^/api/products/[^/]+/status$')) {
+        $curlArgs += @('--header', ('Authorization: Bearer ' + $script:AccessToken))
+    }
     if ($Method -ne 'GET') {
         $curlArgs += @('--header', 'Content-Type: application/json', '--data-binary', '@-')
         $raw = ($Body | & curl.exe @curlArgs) -join "`n"
@@ -94,6 +98,10 @@ function Reject-WithoutMutation {
 try {
     Get-Command curl.exe -ErrorAction Stop | Out-Null
     Write-Host "Target: $BaseUrl"
+    $login = Send-Api -Method 'POST' -Path '/api/auth/login' -Body '{"username":"demo","password":"demo123"}'
+    Assert-Response $login 200 0
+    $script:AccessToken = [string]$login.Json.data.token
+    if ([string]::IsNullOrWhiteSpace($script:AccessToken)) { throw 'Login did not return a token' }
     Write-Host "Test buyer identifier: $script:TestPhone"
     Write-Host 'Creates 3 products and 3 successful orders. Does not delete existing data.'
 

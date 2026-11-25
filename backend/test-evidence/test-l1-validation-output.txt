@@ -1,9 +1,9 @@
-Target: http://localhost:58482
-Test buyer identifier: L1TEST755e0a353e1b
+Target: http://localhost:50812
+Test buyer identifier: L1TEST12579ffe229b
 Creates 3 products and 3 successful orders. Does not delete existing data.
 PASS: health
-Products: main=1 off=2 overflow=3
-  orderNo=SO20261125DB6F2FCC03A746EA88F20A5573AF16CE
+Products: main=2 off=3 overflow=4
+  orderNo=SO20261125CC1CFD694D0947AFBF7E3F9A16D187A0
 PASS: normal order: server price, normalized phone, stock deduction
 PASS: order detail
 PASS: quantity zero
