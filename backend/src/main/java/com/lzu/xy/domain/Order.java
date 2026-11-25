@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 })
 public class Order {
 
+    /** 订单ID（雪花ID，由应用生成） */
     @Id
     @Column(nullable = false, updatable = false)
     private Long id;
@@ -57,16 +58,17 @@ public class Order {
     @Column(nullable = false, length = 255)
     private String address;
 
+    /** 订单状态：0-待支付 created，1-已支付 paid，2-已取消 cancelled */
     @Column(nullable = false)
     private Integer status;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-    @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @Column(name = "created_by", length = 64)
@@ -75,6 +77,7 @@ public class Order {
     @Column(name = "updated_by", length = 64)
     private String updatedBy;
 
+    /** 是否删除：0-否，1-是 */
     @Column(name = "is_deleted", nullable = false)
     private Integer isDeleted;
 }
