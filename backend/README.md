@@ -168,7 +168,9 @@ GET /api/products?page=1&pageSize=10
 
 按订单号查详情；不存在 → 404 + `40401`。
 
-### L1-8 `GET /api/orders?buyerPhone=13800138000&page=1&pageSize=10`
+### L1-8 `GET `
+
+
 
 查某个手机号的订单列表，按创建时间倒序。
 
