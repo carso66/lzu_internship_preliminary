@@ -126,6 +126,20 @@ npm run check
 
 `check` 依次执行 `eslint .`、`prettier --check .`、`vitest run` 和 `vite build`。本次全部通过。
 
+### 干净克隆验证
+
+2026-11-26 从远端提交分支重新克隆后执行：
+
+```powershell
+cd frontend
+npm ci
+npm run check
+```
+
+结果：依赖安装成功、0 个已知漏洞；ESLint 和 Prettier 通过；8 个测试文件 89 个用例通过；55 个模块完成生产构建。随后启动 Mock API 与 Vite，验证首页、`/products/new` 深链、开发代理、商品发布、详情、下单、支付 `processing → paid` 和上下架接口均可正常响应。
+
+首次 Windows 全新克隆暴露出 `core.autocrlf=true` 导致 Prettier 将全部文本文件判为 CRLF 格式错误。仓库根目录已增加 `.gitattributes`，统一文本文件为 LF；第二次全新克隆复跑通过。
+
 ### 自动化测试
 
 单独运行：
@@ -257,6 +271,7 @@ dist/assets/index-XAAi25Fa.js   144.04 kB │ gzip: 52.37 kB
 ## 提交前清单
 
 - [x] `npm run check` 通过，包含 ESLint、Prettier、8 个测试文件 89 个用例和生产构建。
+- [x] 已从远端提交分支重新克隆，执行 `npm ci` 和 `npm run check`，并完成启动与 API 冒烟验证。
 - [x] `.gitignore` 已忽略 `node_modules`、`dist` 和本地 `.env` 文件，并保留 `.env.example`。
 - [x] CI 配置已提交到 `.github/workflows/frontend-ci.yml`。
 - [x] 未修改 `mock/` 目录。
