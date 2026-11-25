@@ -8,8 +8,12 @@
   </head>
   <body>
     <header class="topbar">
-      <h1>校园好物市集</h1>
-      <p class="hint">数据来自 mock：http://127.0.0.1:3001（先运行 node mock/server.mjs）</p>
+      <div class="topbar-text">
+        <h1>校园好物市集</h1>
+        <p class="hint">数据来自 mock：http://127.0.0.1:3001（先运行 node mock/server.mjs）</p>
+      </div>
+      <!-- 右上角：搜索框（L0-5）+「+ 发布商品」，节点由 main.js 挂进来 -->
+      <div class="topbar-actions" id="topbar-actions"></div>
     </header>
     <main id="app"></main>
     <script type="module" src="/src/main.js"></script>

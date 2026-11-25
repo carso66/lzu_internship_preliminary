@@ -21,6 +21,12 @@ body {
 }
 
 .topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* 窄屏时顶栏整体换行，别把「搜索框 + 发布」挤出视口 */
+  flex-wrap: wrap;
+  gap: 16px;
   padding: 16px 20px;
   background: #fff;
   border-bottom: 1px solid var(--border);
@@ -31,10 +37,84 @@ body {
   font-size: 18px;
 }
 
+/* 右上角操作区：搜索框 + 「+ 发布商品」 */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* 搜索框（L0-5）：input 和 × 包在一个带边框的盒子里，focus 时整块描边 */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.search-box:focus-within {
+  border-color: #7aa7ff;
+  box-shadow: 0 0 0 2px #c6d8ff;
+}
+
+.search-icon {
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.search-icon:hover {
+  color: var(--text);
+}
+
+.search-input {
+  width: clamp(120px, 26vw, 220px);
+  padding: 7px 0;
+  font: inherit;
+  color: var(--text);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+/* 用自己的 × 按钮（样式统一、位置可控），关掉浏览器自带的那个 */
+.search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.search-clear {
+  padding: 0 4px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.search-clear[hidden] {
+  display: none;
+}
+
+.search-clear:hover {
+  color: var(--text);
+}
+
 .hint {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+  /* 里面有个长 URL，窄屏时允许在任意位置断行，避免撑出横向滚动 */
+  overflow-wrap: anywhere;
 }
 
 #app {
@@ -48,6 +128,36 @@ body {
   color: var(--muted);
 }
 
+/* 加载态：spinner + 「加载中…」，上下居中排成一行 */
+.state-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--muted);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 尊重系统的「减少动态效果」设置，但不至于让用户看不到任何动静 */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
 .state-error {
   color: var(--danger);
 }
@@ -55,6 +165,24 @@ body {
 .list-summary {
   margin: 0 0 12px;
   color: var(--muted);
+}
+
+/* 订单列表区块（L1-7）：标题栏 + 内容区，和商品表之间留出间距 */
+.orders-section {
+  margin-top: 28px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 16px;
 }
 
 /* 列表表格：table-layout: fixed 才能让列的省略号真正生效 */
@@ -98,6 +226,95 @@ body {
 
 .w-status {
   width: 100px;
+}
+
+.w-actions {
+  width: 152px;
+}
+
+/* 订单表列宽（标题列吃掉剩余空间） */
+.w-order-no {
+  width: 180px;
+}
+
+.w-order-qty {
+  width: 80px;
+}
+
+.w-order-amount {
+  width: 120px;
+}
+
+.w-order-status {
+  width: 100px;
+}
+
+.w-order-actions {
+  width: 110px;
+}
+
+.col-order-actions {
+  white-space: nowrap;
+}
+
+/* 数量 / 金额列用等宽数字，纵向对得齐；订单号也保持一行 */
+.col-order-no,
+.col-order-qty,
+.col-order-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 操作列：购买 + 上下架两个按钮并排（L1-6 / L0-4），一律不换行 */
+.col-actions {
+  white-space: nowrap;
+}
+
+.action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.text-muted {
+  color: var(--muted);
+}
+
+.btn-row {
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* 购买按钮稍微突出一点，和上下架区分开 */
+.btn-buy {
+  color: var(--success);
+  border-color: #b7e0c6;
+}
+
+.btn-buy:hover:enabled {
+  background: #eaf6ee;
+  border-color: var(--success);
+}
+
+.btn-row:hover:enabled {
+  border-color: var(--muted);
+}
+
+.btn-row:active:enabled {
+  background: #f2f3f5;
+}
+
+/* 请求在飞：禁用 + 变淡，连点不会打出第二个 PATCH */
+.btn-row:disabled,
+.btn-row.is-busy {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 长标题单行省略（商品 23 是超长标题） */
@@ -144,6 +361,12 @@ body {
   border-color: #f0c2c2;
 }
 
+.badge-warn {
+  color: #b26a00;
+  background: #fdf6ec;
+  border-color: #f0d3a8;
+}
+
 .badge-unknown {
   color: #a0522d;
   background: #fdf3e7;
@@ -159,4 +382,323 @@ body {
 .is-sold-out .ellipsis {
   color: var(--weak);
 }
+
+/* 错误态 / 空态里的文案与操作按钮（重试、清空筛选、刷新） */
+.state-text {
+  margin: 0 0 12px;
+}
+
+.empty-state .state-title {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.btn-retry {
+  font: inherit;
+  padding: 6px 16px;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-retry:hover {
+  border-color: var(--muted);
+}
+
+.btn-retry:active {
+  background: #f2f3f5;
+}
+
+/* 次要按钮：弹窗里的「取消」、订单区的「刷新」 */
+.btn-plain {
+  padding: 8px 16px;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-plain:hover {
+  border-color: var(--muted);
+}
+
+.btn-plain:active {
+  background: #f2f3f5;
+}
+
+/* 刚发布的那一行：淡黄底 + 左侧竖条，评审一眼能看见（L0-3 的「列表里能找到新商品」） */
+.product-table tr.is-new td {
+  background: #fffbe6;
+}
+
+.product-table tr.is-new td:first-child {
+  box-shadow: inset 3px 0 0 #e6a23c;
+}
+
+/* 右上角触发按钮：文案不换行，别把顶栏挤成两行 */
+.btn-publish {
+  white-space: nowrap;
+}
+
+/* 发布弹窗：遮罩铺满视口、卡片居中。
+   .modal-mask 用了 display:flex，必须显式写 [hidden] 的 display:none，否则 hidden 会被覆盖 */
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 16px 16px;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.modal-mask[hidden] {
+  display: none;
+}
+
+.modal {
+  width: 100%;
+  max-width: 560px;
+  padding: 18px 22px 22px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.modal-close {
+  padding: 0 6px;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: var(--text);
+}
+
+/* 弹窗里表单就是内容本身，不再套一层卡片 */
+.publish-form {
+  margin: 0;
+}
+
+/* 顶部提示条（发布成功 / 失败），4.5 秒后自动消失。
+   top 留在顶栏下方，避免盖住右上角的「+ 发布商品」按钮 */
+.toast {
+  position: fixed;
+  top: 84px;
+  left: 50%;
+  z-index: 30;
+  max-width: 80vw;
+  padding: 10px 18px;
+  font-size: 13px;
+  color: #fff;
+  background: var(--success);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  transform: translateX(-50%);
+}
+
+.toast[hidden] {
+  display: none;
+}
+
+.toast.is-error {
+  background: var(--danger);
+}
+
+.field {
+  margin-bottom: 10px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 7px 10px;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: #7aa7ff;
+  outline: 2px solid #c6d8ff;
+}
+
+/* 校验没过的字段描红（.field .is-invalid 的优先级高于 .field input） */
+.field .is-invalid {
+  border-color: var(--danger);
+}
+
+.field-hint {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 错误位常驻占位（min-height），出现红字时下方内容不会跳一下 */
+.field-error {
+  min-height: 16px;
+  margin: 4px 0 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-primary {
+  padding: 8px 20px;
+  font: inherit;
+  color: #fff;
+  background: var(--success);
+  border: 1px solid var(--success);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-primary:hover:enabled {
+  background: #347f50;
+  border-color: #347f50;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-message {
+  min-height: 20px;
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+
+.form-message.is-success {
+  color: var(--success);
+}
+
+.form-message.is-error {
+  color: var(--danger);
+}
+
+/* 购买弹窗（L1-6 / L1-8）：商品信息 + 数量 + 预估总价 */
+.purchase-title {
+  margin: 0 0 6px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.purchase-meta {
+  display: flex;
+  gap: 16px;
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.purchase-estimate {
+  margin: 4px 0 16px;
+  font-size: 14px;
+}
+
+/* 预估总价：和订单金额同一个口径（¥xx.xx），用等宽数字避免跳动 */
+.purchase-total {
+  font-size: 16px;
+  color: var(--danger);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 支付弹窗（L2-10）：订单信息 + 支付方式 + 轮询状态 */
+.pay-order-no {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pay-product {
+  margin: 0 0 10px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pay-amount-line {
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+
+.pay-amount {
+  font-size: 18px;
+  color: var(--danger);
+  font-variant-numeric: tabular-nums;
+}
+
+.pay-methods {
+  display: flex;
+  gap: 20px;
+}
+
+/* 支付方式是单选按钮：把 .field input 的整行样式收回来，只留原生圆点 */
+.pay-method {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.pay-method input {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--success);
+}
+
+/* 轮询进行中的状态文案：常驻高度，出现 / 消失时按钮不会往上跳 */
+.pay-status {
+  min-height: 20px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+
 

@@ -21,4 +21,17 @@ describe('displayTitle（展示层清洗）', () => {
     expect(displayTitle('<b></b>')).toBe('<b></b>');
     expect(displayTitle('')).toBe('');
   });
+
+  it('正文里的尖括号不误伤（只有"像标签"的才删）', () => {
+    expect(displayTitle('价格 <50 元> 转让')).toBe('价格 <50 元> 转让');
+    expect(displayTitle('3<5 且 8>6')).toBe('3<5 且 8>6');
+    expect(displayTitle('A<B>C')).toBe('A<B>C');
+    expect(displayTitle('《高数》第七版 <上册>')).toBe('《高数》第七版 <上册>');
+  });
+
+  it('真标签还是照删不误', () => {
+    expect(displayTitle('<a href="https://x.test">链接</a>')).toBe('链接');
+    expect(displayTitle('<img src=x onerror=alert(1)>耳机')).toBe('耳机');
+    expect(displayTitle('<span class="hot">热卖</span>')).toBe('热卖');
+  });
 });
