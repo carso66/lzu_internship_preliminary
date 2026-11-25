@@ -87,6 +87,28 @@ public class OrderRepository {
                 .stream().findFirst();
     }
 
+    /** 支付事务专用：锁定订单行，保证状态检查与支付更新不会被并发请求交叉执行。 */
+    public Optional<Order> findByOrderNoForUpdate(String orderNo) {
+        return jdbc.query("SELECT " + COLUMNS + " FROM orders WHERE order_no = :orderNo FOR UPDATE",
+                        Map.of("orderNo", orderNo), ROW_MAPPER)
+                .stream().findFirst();
+    }
+
+    /**
+     * 仅当订单仍处于 created 时更新为 paid，返回受影响行数。
+     * 即使调用方遗漏行锁，条件更新和 payments.order_no 唯一约束也能防止重复成功支付。
+     */
+    public int markPaid(String orderNo, OffsetDateTime paidAt) {
+        return jdbc.update("""
+                        UPDATE orders
+                        SET status = 'paid', paid_at = :paidAt
+                        WHERE order_no = :orderNo AND status = 'created'
+                        """,
+                new MapSqlParameterSource()
+                        .addValue("orderNo", orderNo)
+                        .addValue("paidAt", paidAt));
+    }
+
     public long countByBuyerPhone(String buyerPhone) {
         Long total = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM orders WHERE buyer_phone = :buyerPhone",

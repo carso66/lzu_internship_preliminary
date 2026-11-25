@@ -50,4 +50,11 @@ class DatabaseMigrationTest {
                 "SELECT NEXT VALUE FOR order_no_seq", Long.class);
         assertThat(sequence).isNotNull().isPositive();
     }
+
+    @Test
+    void paymentNumberSequenceIsAvailable() {
+        Long sequence = jdbcTemplate.queryForObject(
+                "SELECT NEXT VALUE FOR payment_no_seq", Long.class);
+        assertThat(sequence).isNotNull().isPositive();
+    }
 }

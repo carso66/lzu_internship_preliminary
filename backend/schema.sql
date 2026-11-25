@@ -156,3 +156,6 @@ CREATE TABLE payments (
 
 -- V2：订单号序列。全局递增，回滚会产生空洞，但保证并发下不重复。
 CREATE SEQUENCE order_no_seq START WITH 1 INCREMENT BY 1;
+
+-- V3：支付编号序列。回滚会产生空洞，但保证并发下不重复。
+CREATE SEQUENCE payment_no_seq START WITH 1 INCREMENT BY 1;
