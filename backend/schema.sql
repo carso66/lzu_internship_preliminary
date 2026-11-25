@@ -19,7 +19,7 @@ CREATE TABLE orders (
     total_amount INT NOT NULL,
     buyer_name VARCHAR(50) NOT NULL,
     buyer_phone VARCHAR(20) NOT NULL,
-    address VARCHAR(200),
+    address VARCHAR(200) NOT NULL ,
     status VARCHAR(16) DEFAULT 'created',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     paid_at TIMESTAMP

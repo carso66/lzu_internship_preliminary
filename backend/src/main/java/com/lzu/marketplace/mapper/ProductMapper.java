@@ -56,4 +56,11 @@ public interface ProductMapper {
 
     @Update("UPDATE products SET status = #{status} WHERE id = #{id}")
     int updateStatus(@Param("id") Long id, @Param("status") String status);
+
+    /**
+     * 条件扣库存：只有 stock >= quantity 时才会更新成功，返回受影响行数。
+     * 返回 0 说明库存不足，调用方据此拒绝下单（并发下天然防超卖）。
+     */
+    @Update("UPDATE products SET stock = stock - #{quantity} WHERE id = #{id} AND stock >= #{quantity} AND status = 'on'")
+    int deductStock(@Param("id") Long id, @Param("quantity") int quantity);
 }
