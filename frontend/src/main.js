@@ -1,5 +1,6 @@
 import { listProducts } from './api.js';
 import { formatCny } from './money.js';
+import { displayTitle } from './text.js';
 
 /**
  * 阶段 0：只验证「mock -> fetch -> 渲染」这条链路通不通。
@@ -36,16 +37,18 @@ function renderProducts(items) {
     el('th', { textContent: '状态' }),
   ]);
 
-  const rows = items.map((item) =>
-    el('tr', {}, [
+  const rows = items.map((item) => {
+    // 标题走 displayTitle：只清洗"显示"，商品数据本身不变
+    const title = displayTitle(item.title);
+    return el('tr', {}, [
       el('td', { textContent: String(item.id) }),
-      el('td', { className: 'col-title', textContent: item.title, title: item.title }),
+      el('td', { className: 'col-title', textContent: title, title }),
       el('td', { className: 'price', textContent: formatCny(item.price) }),
       el('td', { textContent: String(item.stock) }),
       el('td', { textContent: item.category }),
       el('td', { textContent: item.status === 'on' ? '在售' : '已下架' }),
-    ]),
-  );
+    ]);
+  });
 
   app.replaceChildren(el('table', { className: 'product-table' }, [el('thead', {}, [head]), el('tbody', {}, rows)]));
 }
