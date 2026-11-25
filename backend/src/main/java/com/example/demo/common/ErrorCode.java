@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     PARAM_INVALID(40001, HttpStatus.BAD_REQUEST),
+    UNAUTHORIZED(40101, HttpStatus.UNAUTHORIZED),
     NOT_FOUND(40401, HttpStatus.NOT_FOUND),
     STOCK_NOT_ENOUGH(40901, HttpStatus.CONFLICT),
     PRODUCT_OFF(40902, HttpStatus.CONFLICT),

@@ -1,4 +1,5 @@
 package com.example.demo.controller;
+import com.example.demo.config.RequireToken;
 import com.example.demo.dto.UpdateProductStatusRequest;
 import org.springframework.web.bind.annotation.PatchMapping;
 import com.example.demo.common.ApiResponse;
@@ -27,6 +28,7 @@ public class ProductController {
     }
 
     @PostMapping
+    @RequireToken
     public ResponseEntity<ApiResponse<Product>> create(
             @RequestBody CreateProductRequest request
     ) {
@@ -37,6 +39,7 @@ public class ProductController {
                 .body(ApiResponse.ok(product));
     }
     @PatchMapping("/{id}/status")
+    @RequireToken
     public ApiResponse<Product> updateStatus(
             @PathVariable("id") long id,
             @RequestBody UpdateProductStatusRequest request
