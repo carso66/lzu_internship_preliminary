@@ -46,7 +46,7 @@
 - 改请求地址或接口：先看 `src/api/index.js`，再同步 [代码接口说明](CODE_INTERFACE.md) 中的接口表和调用方。
 - 改商品浏览、上下架或购买：从 `ProductListView.vue` → `ProductGroupCard.vue` → `ProductCard.vue` → `src/api/index.js` 顺着调用链阅读。
 - 改商品发布：从 `ProductCreateView.vue` → `ProductForm.vue` → `src/api/index.js` 顺着调用链阅读。
-- 改商品聚合、来源摘要或组级权限提示：先看 `src/utils/productGroups.js` 和 `productGroups.test.js`，再检查 `ProductListView.vue` 的页面级汇总与 `ProductGroupCard.vue` 的组头。
+- 改商品聚合、卖家信息摘要或组级权限提示：先看 `src/utils/productGroups.js` 和 `productGroups.test.js`，再检查 `ProductListView.vue` 的页面级汇总与 `ProductGroupCard.vue` 的组头。
 - 改商品归属、角色或上下架权限：先看 `src/utils/permissions.js` 和 `permissions.test.js`，再检查 `App.vue` 的会话传参、`ProductListView.vue` 的请求前校验和 `ProductGroupCard.vue` / `ProductCard.vue` / `ProductDetailView.vue` 的权限提示。
 - 改订单或支付：从 `OrderListView.vue` → `OrderCard.vue` → `createPayment()` / `getPayment()` 阅读，并重点检查卸载清理。
 - 新增页面：先看 `src/router/routes.js`、`src/router/index.js`、`src/router/index.test.js` 和 `App.vue`，页面内部自行请求数据，不依赖列表传参。
@@ -69,10 +69,10 @@
 | C10 | 离开订单页必须停止轮询，并阻止在途响应继续更新状态 |
 | C11 | 详情页必须能直接打开，不依赖列表页传入的商品对象 |
 | C12 | 修改功能、接口、校验、测试或工程化配置时，同步 `README.md`、`CODE_INTERFACE.md`、`DESIGN.md`、`SUBMISSION.md` 和 `AI_USAGE.md` 中的相关事实与边界 |
-| C13 | 商品唯一身份是 `id`；同名 listing 可做展示聚合，但不得在数据层合并、静默去重或共享权限 |
+| C13 | 商品唯一身份是 `id`；相似商品可做展示聚合，但不得在数据层合并、静默去重或共享权限 |
 | C14 | 卖家归属只按当前会话用户 ID 与商品 `sellerId` 精确匹配；`sellerName` 只能展示，绝不能作为权限依据 |
 | C15 | 前端权限判断只改善体验；真实发布、上下架、订单和管理员操作必须由服务端重新鉴权，演示角色切换不等于真实登录 |
-| C16 | 聚合组只能按 `spuId` 或规范化展示标题生成，不能作为权限资源；每条 listing 仍按 `id` 独立管理 |
+| C16 | 聚合组按明确同款、标准商品类型或具体分类生成，不能作为权限资源；每件商品仍按 `id` 独立管理 |
 
 ## 3. 范围约束
 
@@ -105,15 +105,15 @@ export const API_BASE_URL = (
 - 支付请求体使用 `{ orderId, method }`，`method` 只能是 `alipay` 或 `wechat`。
 - Mock 数据只存在内存中，重启或 `POST /api/_reset` 会恢复初始状态。
 
-### 4.1 商品身份与来源
+### 4.1 商品身份与卖家归属
 
 - 商品唯一身份是接口返回的 `id`；标题只是搜索和展示字段，相同标题不代表同一商品。
-- 展示层可优先按 `spuId` 聚合；缺少 `spuId` 时，可按清洗后、忽略大小写和空白的标题做展示聚合。聚合只减少页面重复，不改变数据身份。
-- 聚合组不是商品实体，也不是库存或权限容器。组内每条 listing 仍分别保留商品编号、卖家来源、价格、库存、状态、成色和规格，不能因标题或 `spuId` 相同而共享卖家归属。
+- 展示层优先按 `spuId` 识别明确同款；没有时从清洗后的标题匹配标准商品类型，再退到非宽泛的具体分类。只有能证明购买意图相近时才归组；无法可靠识别时每件商品独立成组。聚合只减少页面重复，不改变数据身份。
+- 聚合组不是商品实体，也不是库存或权限容器。组内每件商品仍分别保留商品编号、卖家名称、卖家编号、价格、库存、状态、成色和规格，不能因标题或 `spuId` 相同而共享卖家归属。
 - `sellerId` 是卖家归属字段。卖家管理商品时，服务端必须用当前会话用户 ID 与商品 `sellerId` 比对。
 - `sellerName` 只是展示名称，缺失或空白时显示“匿名卖家”；它不能用于判定商品归属，两名卖家同名也不构成任何共享权限。
-- 没有有效 `sellerId` 的商品显示“身份未核验”。当前 Mock 商品没有真实卖家编号，新建商品请求也不提交 `sellerId`，因此不能声称来源已认证。
-- 真实后端应从会话推导并写入卖家身份，提供卖家认证与信用信息；成熟商品模型可继续增加 `spuId`、`skuId` 和 `auditStatus`。
+- 没有有效 `sellerId` 的商品只显示商品自带的卖家名称，不能据此判定卖家归属。当前 Mock 商品没有真实卖家编号，新建商品请求也不提交 `sellerId`，因此不能声称卖家已完成认证。
+- 真实后端应从会话推导并写入卖家身份，提供卖家认证与信用信息；成熟商品模型可继续增加明确同款编号 `spuId`、规格编号 `skuId` 和审核状态 `auditStatus`。
 
 ### 4.2 角色与操作权限契约
 
@@ -132,9 +132,9 @@ export const API_BASE_URL = (
 
 #### 4.2.1 权限变化的展示契约
 
-- 页面级：`ProductListView` 对当前筛选结果调用 `summarizeGroupPermissions(visibleListings, session)`，显示角色、组数、listing 总数和 `all / partial / none` 范围，并用 `aria-live="polite"` 通知变化。
-- 组级：`ProductGroupCard` 显示“可管理全部 N 条”“可管理 x/N 条”或“仅浏览，无管理权限”。这里的 `all / partial / none` 只是摘要，不是授权结果。
-- listing 级：每个商品仍显示自己的商品编号、卖家来源和状态；上下架等按钮逐条调用 `canManageProduct(product, session)`，不能读取组级 `canManageAll` 代替。
+- 页面级：`ProductListView` 对当前筛选结果调用 `summarizeGroupPermissions(visibleProducts, session)`，显示角色、商品组数、商品总数和 `all / partial / none` 范围，并用 `aria-live="polite"` 通知变化。
+- 组级：`ProductGroupCard` 显示“可管理全部 N 件”“可管理 x/N 件”或“仅浏览，无管理权限”。这里的 `all / partial / none` 只是摘要，不是授权结果。
+- 商品级：每件商品仍显示自己的商品编号、卖家名称、卖家编号和状态；上下架等按钮逐条调用 `canManageProduct(product, session)`，不能读取组级 `canManageAll` 代替。
 - 重新计算：`session.role`、`session.id`、商品 `sellerId` 或当前筛选结果变化时，页面级和组级权限摘要必须随渲染重新计算；上下架状态变化会改变按钮文案、购买可用性和状态摘要，但不得改变所有权或授予新权限。
 - 最终拒绝：前端隐藏或禁用只改善体验。写操作若被服务端以 403 拒绝，页面必须展示服务端错误并保持原状态，不能因为组级摘要显示“全部可管理”就假定成功。
 
@@ -217,7 +217,7 @@ export const API_BASE_URL = (
 ## 11. 测试与文档同步约束
 
 - `npm test` 必须可以在不启动浏览器的情况下运行。
-- 当前测试覆盖 `money.js`、`product.js`、`quantity.js`、`productForm.js`（表单校验）、`permissions.js`（角色、演示会话与商品归属）、`productGroups.js`（展示聚合与组级权限摘要）、`api/index.js`（请求封装）和 `router/routes.js`（路由匹配），共 8 个测试文件、83 个用例；修改这些模块时必须同步更新测试。
+- 当前测试覆盖 `money.js`、`product.js`、`quantity.js`、`productForm.js`（表单校验）、`permissions.js`（角色、演示会话与商品归属）、`productGroups.js`（展示聚合与组级权限摘要）、`api/index.js`（请求封装）和 `router/routes.js`（路由匹配），共 8 个测试文件、89 个用例；修改这些模块时必须同步更新测试。
 - 金额测试至少保留 `0.01`、`19.9`、`12.5`、`1`、`100` 和浮点误差用例。
 - 标题测试至少保留 script 标签、HTML 标签、控制字符、零宽字符和正常长标题用例。
 - 数量测试至少保留合法整数、零、负数、小数、非数字、超库存、零库存和异常库存用例。
@@ -226,7 +226,7 @@ export const API_BASE_URL = (
 - 路由测试至少保留 `/products/new` 优先于 `/products/:id`、普通商品 ID、多余路径段 404 和未知路径 404 用例。
 - 权限测试至少保留无会话、游客/买家、卖家本人/他人、数字/字符串 ID、同名不同人、空 `sellerId`、管理员和演示会话用例，并覆盖 `createDemoSession()` 的默认管理员、卖家编号清洗、空编号失败关闭和未知角色降级。
 - 权限演示切换器只能改变前端会话和权限提示，不得用 `sellerName`、标题或伪造 `sellerId` 制造可管理状态；当前 Mock 没有 `sellerId` 时，卖家模式应如实显示“仅浏览”。
-- 聚合测试至少保留 SPU 优先、标题回退、重复 `id`、无标题独立组、异常价格库存、来源计数和权限 `all / partial / none` 三态。
+- 聚合测试至少保留明确同款优先、不同标题的相近商品归组、标准类型最长词优先、具体分类回退、配件排除、随附配件保留、无法可靠识别时独立成组、重复 `id`、无标题独立组、异常价格库存、卖家信息计数和权限 `all / partial / none` 三态。
 - 测试输出不能伪造成浏览器 E2E；临时 Playwright 验证与仓库内 Vitest 单测要明确区分。
 - 修改 API 函数签名、组件 props/emits、路由表或数据形状时，必须同步更新 [代码接口说明](CODE_INTERFACE.md)。
 - 修改验收范围、完成状态或已知限制时，必须同步更新 [提交说明](SUBMISSION.md) 和 [项目 README](README.md)。
@@ -240,9 +240,9 @@ export const API_BASE_URL = (
 - 组件级测试和完整 Playwright E2E 套件；当前仓库只有 8 个单元测试文件（工具函数、表单校验、商品归属、展示聚合与组级权限摘要、API 请求封装和路由匹配）。
 - 分页控件、服务端搜索、图片上传和富文本编辑。
 - 真实登录、服务端会话实名认证和接口级授权；当前只有前端体验层 `canManageProduct()` 与顶部可切换、明确标记的演示角色，直接调用接口仍不受其限制。
-- 真实卖家 `sellerId`、商品归属持久化和来源认证；Mock 新建商品固定写为“我”且没有 `sellerId`，界面只能显示“身份未核验”。`sellerName` 不能作为权限依据。
+- 真实卖家 `sellerId`、商品归属持久化和卖家认证；Mock 新建商品固定写为“我”且没有 `sellerId`，界面只能显示商品自带的卖家名称，不能据此判定卖家归属。`sellerName` 不能作为权限依据。
 - 管理员审核、强制下架、举报处理和审计日志；演示管理员目前只能通过现有上下架按钮体验状态切换，不代表这些管理能力已完成。
-- SPU/SKU 实体治理、同名商品合并与来源认证；当前 Mock 没有真实 `spuId`/`skuId`，展示层只能按标题回退聚合，不能把聚合组视为同一商品或同一卖家。
+- 标准商品实体、卖家认证与相似商品保守分组；当前 Mock 没有真实 `spuId`/`skuId`，展示层只能按固定类型规则和具体分类保守归组，不能把聚合组视为同一商品或同一卖家。
 - 退款、优惠券和更复杂的支付状态模型。
 - 生产静态服务器的 SPA History fallback。
 

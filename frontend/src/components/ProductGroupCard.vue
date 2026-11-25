@@ -25,10 +25,10 @@ const props = defineProps({
 
 const emit = defineEmits(['buy', 'toggle-status'])
 
-const expandedByDefault = computed(() => props.group.listingCount === 1)
+const expandedByDefault = computed(() => props.group.productCount === 1)
 
 const groupingLabel = computed(() =>
-  props.group.listingCount > 1 ? '同类商品' : '商品',
+  props.group.productCount > 1 ? '同类商品' : '商品',
 )
 
 const priceRange = computed(() => {
@@ -60,14 +60,22 @@ function isStatusUpdating(id) {
         <div class="product-group__badges">
           <span class="product-group__mode">{{ groupingLabel }}</span>
           <span class="product-group__badge">
-            {{ group.listingCount }} 件商品
+            {{ group.productCount }} 件商品
           </span>
           <span class="product-group__badge">
-            {{ group.sourceCount }} 位卖家
+            {{ group.sellerCount }} 个卖家信息
           </span>
         </div>
 
         <h2 class="product-group__title">{{ group.title }}</h2>
+
+        <ul
+          v-if="group.productCount > 1 && group.tags?.length"
+          class="product-group__tags"
+          aria-label="商品特点"
+        >
+          <li v-for="tag in group.tags" :key="tag">{{ tag }}</li>
+        </ul>
 
         <p class="product-group__stats">
           <span>价格 {{ priceRange }}</span>
@@ -93,13 +101,13 @@ function isStatusUpdating(id) {
     </summary>
 
     <div class="product-group__body">
-      <p v-if="group.listingCount > 1" class="product-group__note">
+      <p v-if="group.productCount > 1" class="product-group__note">
         以下商品单独出售，价格、库存和操作互不影响。
       </p>
 
-      <div class="product-group__listings">
+      <div class="product-group__products">
         <ProductCard
-          v-for="product in group.listings"
+          v-for="product in group.products"
           :key="product.id"
           :product="product"
           :ordering="String(orderingProductId) === String(product.id)"
@@ -189,6 +197,26 @@ function isStatusUpdating(id) {
   white-space: nowrap;
 }
 
+.product-group__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 9px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.product-group__tags li {
+  padding: 3px 8px;
+  border: 1px solid #e4e4e7;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #52525b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .product-group__stats {
   display: flex;
   flex-wrap: wrap;
@@ -249,7 +277,7 @@ function isStatusUpdating(id) {
   line-height: 1.6;
 }
 
-.product-group__listings {
+.product-group__products {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
   gap: 14px;
@@ -282,7 +310,7 @@ function isStatusUpdating(id) {
     padding: 4px 12px 12px;
   }
 
-  .product-group__listings {
+  .product-group__products {
     grid-template-columns: 1fr;
   }
 }

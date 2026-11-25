@@ -62,7 +62,7 @@ createApp(App).use(router).mount('#app')
 
 路由表单独放在 `src/router/routes.js`，便于在 `src/router/index.test.js` 中无浏览器地验证静态路径与动态参数的匹配优先级。`src/router/index.js` 只负责创建 `createWebHistory()` 路由实例、滚动复位和更新标题。
 
-| 路径 | 路由名 | 组件 | 数据来源 |
+| 路径 | 路由名 | 组件 | 数据获取 |
 |---|---|---|---|
 | `/` | `products` | `ProductListView.vue` | `getProducts({ pageSize: 50 })` |
 | `/orders` | `orders` | `OrderListView.vue` | `getOrders()` |
@@ -117,7 +117,7 @@ createApp(App).use(router).mount('#app')
 | 卖家 | 管理本人商品 | 可输入演示卖家编号；`canManageProduct()` 按 `sellerId` 精确匹配，当前 Mock 商品没有该字段 |
 | 管理员 | 审核、强制下架、处理举报、查看审计日志 | 默认管理员演示可切换商品状态；其他管理能力未实现 |
 
-演示会话只控制前端按钮和提示。切换步骤：在顶部选择角色；选择卖家后输入卖家编号；观察页面级、组级和 listing 级权限同步变化。游客 / 买家为 `none`，管理员为 `all`，卖家仅在存在匹配 `sellerId` 时为 `partial` 或 `all`。当前 Mock 商品没有 `sellerId`，因此卖家页面实际为 `none`，不能用伪造编号冒充来源认证。
+演示会话只控制前端按钮和提示。切换步骤：在顶部选择角色；选择卖家后输入卖家编号；观察页面级、组级和单件商品权限同步变化。游客 / 买家为 `none`，管理员为 `all`，卖家仅在存在匹配 `sellerId` 时为 `partial` 或 `all`。当前 Mock 商品没有 `sellerId`，因此卖家页面实际为 `none`，不能把演示输入的卖家编号当成真实卖家归属。
 
 任何真实写操作都必须在服务端重新校验当前用户、角色和资源归属，不能信任客户端提交的 `role` 或 `sellerId`。
 
@@ -183,7 +183,7 @@ async function request(path, options = {})
 }
 ```
 
-当前 `createProduct()` 不提交 `sellerId` 或 `sellerName`。Mock 会把新商品的 `sellerName` 固定写为“我”，且不生成 `sellerId`，所以前端只能显示“身份未核验”。真实后端应从会话推导卖家身份并写入服务端数据，不能接受客户端伪造卖家编号。
+当前 `createProduct()` 不提交 `sellerId` 或 `sellerName`。Mock 会把新商品的 `sellerName` 固定写为“我”，且不生成 `sellerId`，所以前端无法认定卖家归属，卖家模式不能管理该商品；管理员仍可管理。真实后端应从会话推导卖家身份并写入服务端数据，不能接受客户端伪造卖家编号。
 
 ### 3.5 `createOrder()` 请求体
 
@@ -238,12 +238,12 @@ try {
 | `stock` | number | 库存，0~999 |
 | `category` | string | 五种分类之一 |
 | `status` | `'on' \| 'off'` | 在售 / 已下架 |
-| `spuId` | `number \| string \| undefined` | 可选标准商品单元 ID；存在时聚合展示优先按它分组。当前 Mock 数据没有该字段 |
+| `spuId` | `number \| string \| undefined` | 可选标准商品编号；存在时仅用于识别明确同款。当前 Mock 数据没有该字段 |
 | `sellerId` | `number \| string \| undefined` | 可选卖家用户 ID；卖家管理权限只按该字段与当前用户 ID 是否一致判断。当前 Mock 数据和新发布商品均没有该字段 |
-| `sellerName` | string | 卖家展示名称；缺失时卡片和详情显示“匿名卖家”。没有有效 `sellerId` 时界面显示“身份未核验”；该字段不是认证身份，也不能作为权限依据 |
+| `sellerName` | string | 卖家展示名称；缺失时卡片和详情显示“匿名卖家”。该字段不是认证身份，也不能作为权限依据；没有有效 `sellerId` 时不能据此判定商品归属 |
 | `description` | string | 商品描述 |
 
-商品标题可以重复，`id` 才是列表项和数据记录的唯一身份。多个卖家发布同名商品时，可以在展示层按 `spuId` 或规范化标题聚合，但每条 listing 的商品编号、卖家来源、价格、库存、状态和权限必须独立保留；不得在数据层按标题合并或静默去重。
+商品标题可以重复，`id` 才是商品和数据记录的唯一身份。多个卖家发布相似商品时，展示层只在能识别明确同款、标准商品类型或具体分类时归组；每件商品的编号、卖家名称、价格、库存、状态和权限必须独立保留，无法可靠识别的同名商品不得强行合并。
 
 ### 4.2 `ProductGroup` 聚合展示结构
 
@@ -251,21 +251,31 @@ try {
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `key` | string | 展示分组键，形如 `spu:*`、`title:*` 或 `listing:*`；不能用于权限判断 |
-| `groupingMode` | `'spu' \| 'title' \| 'listing'` | 分组依据；`listing` 表示无标题时保留为独立组 |
-| `title` | string | 组标题，取组内首条 listing 的清洗后标题 |
-| `listings` | `Product[]` | 组内全部独立 listing，保留原对象 |
-| `listingCount` | number | 组内 listing 数 |
-| `sourceCount` | number | 来源数；有 `sellerId` 的按卖家 ID 去重，缺少编号的 listing 各自计为独立来源 |
-| `identifiedSourceCount` | number | 带有效 `sellerId` 的不同卖家数；“有编号”不等于已实名认证 |
-| `missingSellerIdCount` | number | 缺少有效 `sellerId` 的 listing 数 |
+| `key` | string | 展示分组键，形如 `spu:*`、`type:*`、`category:*` 或 `product:*`；不能用于权限判断 |
+| `groupingMode` | `'spu' \| 'type' \| 'category' \| 'product'` | 分组依据；`product` 表示无法可靠识别购买意图时保留为单件商品组 |
+| `title` | string | 稳定组标题：明确同款用标准类型或共同标题前缀；标准类型和具体分类用对应名称；无法识别时用该商品的清洗后标题 |
+| `type` | `string \| null` | 识别出的标准商品类型，如“耳机”“电脑包”；未识别时为 `null` |
+| `tags` | `string[]` | 多商品组中出现的商品特点标签，如“降噪”“蓝牙”“二手”；最多 6 个 |
+| `products` | `Product[]` | 组内全部独立商品，保留原对象 |
+| `productCount` | number | 组内商品件数 |
+| `sellerCount` | number | 卖家信息数；有 `sellerId` 的按卖家编号去重，缺少编号的商品各自计数 |
+| `identifiedSellerCount` | number | 带有效 `sellerId` 的不同卖家数；“有编号”不等于已认证 |
+| `missingSellerIdCount` | number | 缺少有效 `sellerId` 的商品数 |
 | `priceMin` / `priceMax` | `number \| null` | 有效价格区间，单位分；无有效价格时为 `null` |
 | `totalStock` | number | 组内有效库存之和，异常库存按 0 计 |
-| `onSaleCount` | number | `status === 'on'` 的 listing 数 |
-| `availableCount` | number | 在售且库存大于 0 的 listing 数 |
-| `offShelfCount` | number | 非在售 listing 数 |
-| `soldOutCount` | number | 库存小于等于 0 的 listing 数 |
+| `onSaleCount` | number | `status === 'on'` 的商品数 |
+| `availableCount` | number | 在售且库存大于 0 的商品数 |
+| `offShelfCount` | number | 非在售商品数 |
+| `soldOutCount` | number | 库存小于等于 0 的商品数 |
 | `permissions` | object | 当前会话的组级权限摘要，结构见 5.6 |
+
+组标题生成规则：
+
+- 明确同款：优先使用标题识别出的标准类型；没有类型时使用组内共同标题前缀；仍无效时显示“同款商品”。
+- 标准类型和具体分类：使用固定类型名或分类名，不以组内第一件商品、最长标题或出现次数最多的标题命名。
+- 无法可靠识别：使用该商品清洗后的标题，并单独成组；卖家名称、卖价、库存和商品编号不参与组标题生成。
+
+配件边界：配件与主商品分开归组，例如“耳机收纳盒”“键盘膜”“显示器支架”不并入耳机、键盘或显示器。只有当配件词与标题最前面的主商品词重叠时才排除该类型，因此“耳机含收纳盒”仍归入耳机。
 
 ### 4.3 `Order`
 
@@ -394,7 +404,7 @@ canManageProduct(product, session) -> boolean
 
 ```js
 buildProductGroups(products, session = null) -> ProductGroup[]
-summarizeGroupPermissions(listings = [], session = null) -> {
+summarizeGroupPermissions(products = [], session = null) -> {
   role, roleLabel, manageableCount, totalCount,
   scope: "all" | "partial" | "none",
   scopeLabel, canManageAll, permissionLabel
@@ -402,11 +412,13 @@ summarizeGroupPermissions(listings = [], session = null) -> {
 ```
 
 - `buildProductGroups()` 仅接受数组；非数组、`null` 和 `undefined` 返回空数组。
-- 分组优先使用 `spuId`；没有 `spuId` 时，使用 `normalizeProductTitle()` 后的标题做展示回退，匹配键忽略大小写与空白。
-- listing 身份始终是 `id`；重复 `id` 只保留第一条，无标题商品保留为独立组。
-- 聚合只计算展示摘要，不合并卖家身份、库存所有权或权限。
+- 分组按购买意图而不是标题完全相同来判断：先使用 `spuId` 识别明确同款；没有时从清洗后的标题匹配固定标准商品类型，再退到非宽泛的具体分类。标准词按“最长、最具体”优先，例如“笔记本内胆包”先命中“电脑包”而不是“笔记本”。
+- 商品身份始终是 `id`；重复 `id` 只保留第一条；没有可靠类型或具体分类时，每件商品独立成组，不按同名强行聚合。
+- 聚合只计算展示摘要，不合并商品身份、卖家信息、库存所有权或权限。
+- 配件与主商品分开；主商品标题提到随附配件时仍归入主商品，例如“英语听力耳机含收纳盒”不会因为出现“收纳盒”而被排除。
 - `summarizeGroupPermissions()` 逐条调用 `canManageProduct()`，再根据覆盖比例返回 `all / partial / none`。
-- `permissions.test.js` 之外，`productGroups.test.js` 固化 SPU 优先、标题回退、重复 ID、无标题、异常价格库存、来源计数和权限三态。
+- 组标题由稳定规则决定，不取第一件商品标题、最长标题或出现次数最多的标题；卖家、价格、库存和商品编号不参与标题生成。
+- `permissions.test.js` 之外，`productGroups.test.js` 固化明确同款优先、不同标题耳机归组、笔记本与内胆包分离、配件排除、随附配件保留、未知商品独立、具体分类回退、卖家信息计数、异常价格库存和权限三态。
 
 ## 6. 业务组件接口
 
@@ -477,20 +489,20 @@ summarizeGroupPermissions(listings = [], session = null) -> {
 - 零库存时显示“缺货”、卡片灰化并禁用购买。
 - 标题经 `normalizeProductTitle()` 清洗，CSS 负责单行省略。
 - 金额仅通过 `formatPrice(product.price)` 展示。
-- 元信息展示商品编号、库存、分类和“来源”；商品编号来自 `id`，同名商品靠它区分。
-- 来源取 `sellerName`，缺失或空白时显示“匿名卖家”；没有有效 `sellerId` 时额外显示“身份未核验”。该字段只用于展示，不证明卖家身份。
+- 元信息展示商品编号、库存、分类和卖家；商品编号来自 `id`，同名商品靠它区分。
+- 卖家取 `sellerName`，缺失或空白时显示“匿名卖家”。没有有效 `sellerId` 时界面不猜测归属，管理员权限仍按角色单独判断。
 - 没有管理权限时按钮文案为“无管理权限”并禁用；点击处理函数内部也会再次检查 `canManage`，不能只依赖按钮的 disabled 状态。
 
 ### 6.3 `ProductGroupCard.vue`
 
-职责：展示一个聚合组、默认折叠策略、组头摘要和组级权限，并把每个 listing 交给 `ProductCard`。
+职责：展示一个聚合组、默认折叠策略、组头摘要和组级权限，并把每件商品交给 `ProductCard`。
 
 **Props**：
 
 | Prop | 类型 | 默认值 | 作用 |
 |---|---|---|---|
 | `group` | Object | 必填 | `buildProductGroups()` 生成的聚合组 |
-| `session` | `object \| null` | `null` | 当前会话；用于逐条判断 listing 的展示权限 |
+| `session` | `object \| null` | `null` | 当前会话；用于逐件判断商品的展示权限 |
 | `orderingProductId` | `number \| string \| null` | `null` | 当前正在下单的商品 |
 | `statusUpdatingIds` | Object | `new Set()` | 正在更新状态的商品 ID 集合 |
 
@@ -498,15 +510,15 @@ summarizeGroupPermissions(listings = [], session = null) -> {
 
 | 事件 | 载荷 | 触发时机 |
 |---|---|---|
-| `buy` | `{ product, quantity }` | 组内某条 listing 发起购买 |
-| `toggle-status` | `product` | 组内某条 listing 发起上下架 |
+| `buy` | `{ product, quantity }` | 组内某件商品发起购买 |
+| `toggle-status` | `product` | 组内某件商品发起上下架 |
 
 内部行为：
 
-- 单 listing 组默认展开，多 listing 组默认折叠。
-- 组头展示分组方式、listing 数、来源数、带卖家编号来源数、缺少卖家编号条数、价格区间、库存合计和状态摘要。
-- 组级权限只展示 `all / partial / none` 摘要；展开后 `ProductCard` 仍按每条 listing 的 `canManageProduct()` 结果控制按钮。
-- 组内说明明确写出“仅做展示聚合；商品编号、来源、库存和上下架权限仍各自独立”。
+- 单商品组默认展开，多商品组默认折叠。
+- 组头展示商品件数、卖家信息数、价格区间、库存合计和状态摘要；多商品组展示标准组名和组内出现的特点标签。
+- 组级权限只展示“全部可管理 / 部分可管理 / 仅浏览”摘要；展开后 `ProductCard` 仍按每件商品的 `canManageProduct()` 结果控制按钮。
+- 组内说明明确写出“以下商品单独出售，价格、库存和操作互不影响”。
 
 ### 6.4 `OrderCard.vue`
 
@@ -559,8 +571,8 @@ summarizeGroupPermissions(listings = [], session = null) -> {
 - 每次加载递增 `loadRequestId`，只允许最新请求回写；卸载时递增 ID，使在途请求失效。
 - 请求前调用 `canManageProduct(product, props.session)`，再用 `statusUpdatingIds` 做商品级锁；无权限时提示“仅商品所有者或管理员可以变更商品状态”。
 - 将 `filteredProducts` 交给 `buildProductGroups(filteredProducts, session)`，再渲染 `ProductGroupCard`；组内仍逐条渲染 `ProductCard`。
-- 向 `ProductCard` 传递 `can-manage`，并显示“SPU 优先、标题回退、listing 独立”的说明。
-- 页面级权限摘要由 `summarizeGroupPermissions()` 汇总当前可见 listing，并通过 `aria-live="polite"` 持续播报变化。
+- 向 `ProductCard` 传递 `can-manage`；组头用“同类商品”概括相近购买意图，具体商品仍逐件展示。
+- 页面级权限摘要由 `summarizeGroupPermissions()` 汇总当前可见商品，并通过 `aria-live="polite"` 持续播报变化。
 - 标题区提供进入 `/products/new` 的“上架商品”入口；列表页不再嵌入发布表单。
 - 组件卸载时设置 `cancelled`，阻止旧请求回写。
 
@@ -598,7 +610,7 @@ summarizeGroupPermissions(listings = [], session = null) -> {
 - 使用递增 `requestId` 丢弃旧请求响应。
 - 不存在或请求失败时显示“商品不存在”或后端 message。
 - 下架或缺货时禁用购买。
-- 元信息显示商品编号、卖家名称及“卖家编号 xxx”或“身份未核验”；同名商品以商品编号区分。
+- 元信息显示商品编号和卖家名称；同名或同类商品仍以商品编号区分，卖家名称不参与权限判断。
 - `sellerName` 不参与权限判断；权限提示由 `canManageProduct(product, session)` 得出，并明确真实权限仍须服务端校验。
 - 组件卸载时递增 `requestId`，使在途请求失效。
 
@@ -776,10 +788,10 @@ OrderListView onMounted / refreshKey 变化
 | `src/utils/quantity.js` | `quantity.test.js`、`App.vue`、商品卡片/详情页禁购与数量边界 |
 | `src/utils/productForm.js` | `productForm.test.js`、`ProductForm.vue` 的字段校验与字数展示 |
 | `src/utils/permissions.js` | `permissions.test.js`、`App.vue` 的演示角色切换与 `createDemoSession()`、`ProductListView` / `ProductDetailView` 的权限提示、`productGroups.js` 的逐条权限判定 |
-| `src/utils/productGroups.js` | `productGroups.test.js`、`ProductListView` 的聚合数据流、`ProductGroupCard` 摘要字段、来源计数与 `all/partial/none` 口径 |
+| `src/utils/productGroups.js` | `productGroups.test.js`、`ProductListView` 的聚合数据流、`ProductGroupCard` 摘要字段、卖家计数与 `all/partial/none` 口径 |
 | `ProductGroupCard` props/emits | `ProductListView` 的传参、`ProductCard` 的逐条事件转发、本文组件接口 |
-| `Product` 新增 `spuId` / `sellerId` | `buildProductGroups()`、来源展示、聚合兜底、Mock 字段核对和权限测试 |
-| `ProductCard` props/emits、商品编号与来源展示 | `ProductListView` 的 `can-manage`、本文组件接口、匿名卖家与身份未核验兜底、`permissions.test.js` |
+| `Product` 新增 `spuId` / `sellerId` | `buildProductGroups()`、卖家展示、标准类型与具体分类兜底、Mock 字段核对和权限测试 |
+| `ProductCard` props/emits、商品编号与卖家展示 | `ProductListView` 的 `can-manage`、本文组件接口、匿名卖家兜底和 `permissions.test.js` |
 | `ProductForm` emits | `ProductCreateView` 成功反馈、本文组件接口 |
 | `OrderCard` props/emits | `OrderListView` 模板、本文组件接口 |
 | `ProductListView` / `ProductCreateView` props 与职责 | `App.vue`、本文页面接口、独立上架入口 |
@@ -797,7 +809,7 @@ OrderListView onMounted / refreshKey 变化
 - [ ] 页面状态仍然互斥，错误有可见提示。
 - [ ] 异步请求有失败恢复和卸载保护。
 - [ ] 所有前端管理权限判断都使用 `canManageProduct()`，没有按 `sellerName`、标题或聚合组 key 判定归属。
-- [ ] 聚合只存在于展示层，没有合并 listing、来源、库存或权限。
+- [ ] 聚合只存在于展示层，没有合并商品、卖家、库存或权限。
 - [ ] 真实写操作已在服务端规划归属校验；没有把演示角色切换描述成真实登录。
 - [ ] `npm run check`（Lint、格式、测试、构建）通过。
 - [ ] `mock/` 未被修改。

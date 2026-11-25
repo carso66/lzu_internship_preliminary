@@ -47,12 +47,12 @@ const productGroups = computed(() =>
   buildProductGroups(filteredProducts.value, props.session),
 )
 
-const visibleListings = computed(() =>
-  productGroups.value.flatMap((group) => group.listings),
+const visibleProducts = computed(() =>
+  productGroups.value.flatMap((group) => group.products),
 )
 
 const pagePermissions = computed(() =>
-  summarizeGroupPermissions(visibleListings.value, props.session),
+  summarizeGroupPermissions(visibleProducts.value, props.session),
 )
 
 const permissionSummary = computed(() => {
