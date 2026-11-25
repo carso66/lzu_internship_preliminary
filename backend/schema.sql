@@ -41,6 +41,26 @@ CREATE TABLE IF NOT EXISTS orders (
     KEY idx_orders_status_deleted (status, is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单表';
 
+CREATE TABLE IF NOT EXISTS payments (
+    id BIGINT NOT NULL COMMENT '支付单ID，主键，由应用生成雪花ID',
+    payment_no VARCHAR(32) NOT NULL COMMENT '支付流水号，形如PAYxxx，全局唯一',
+    order_id BIGINT NOT NULL COMMENT '订单ID，对应orders.id',
+    order_no VARCHAR(32) NOT NULL COMMENT '订单编号快照，便于对账',
+    amount BIGINT NOT NULL COMMENT '支付金额，单位：分，等于订单总金额',
+    method VARCHAR(16) NOT NULL COMMENT '支付方式：alipay-支付宝，wechat-微信',
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '支付状态：0-处理中，1-已支付，2-失败',
+    paid_at DATETIME NULL COMMENT '支付成功时间',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(64) NULL COMMENT '创建人',
+    updated_by VARCHAR(64) NULL COMMENT '更新人',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-否，1-是',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_payments_payment_no (payment_no),
+    UNIQUE KEY uk_payments_order_id (order_id),
+    KEY idx_payments_order_no (order_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='支付表';
+
 -- 商品表 products 5条测试数据
 INSERT INTO products (id, title, price, stock, category, description, status, seller_name, created_at, updated_at, created_by, updated_by, is_deleted)
 VALUES
