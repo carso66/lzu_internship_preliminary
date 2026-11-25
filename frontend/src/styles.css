@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --bg: #f6f7f9;
   --card: #ffffff;
   --ink: #1f2328;
@@ -45,6 +46,16 @@ body {
 .field input, .field select, .field textarea {
   width: 100%; padding: 8px 10px; border: 1px solid var(--line);
   border-radius: 6px; background: #fff; color: var(--ink); font: inherit;
+}
+/* 原生下拉弹层由系统绘制，深色模式下会变黑底黑字；强制浅色配色并显式给 option 上色 */
+.field select { color-scheme: light; }
+.field select option, .field select optgroup { background: #fff; color: #1f2328; }
+.field select option:checked { background: #e6f1fb; color: #1f2328; }
+/* 系统开启深色模式时再兜一层，保证下拉选项始终是白底深字 */
+@media (prefers-color-scheme: dark) {
+  .field select, .field select option, .field select optgroup {
+    background: #fff; color: #1f2328;
+  }
 }
 .field input:focus, .field select:focus, .field textarea:focus {
   outline: 2px solid var(--brand-soft); border-color: var(--brand);
