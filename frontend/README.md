@@ -4,7 +4,7 @@
 
 ## 项目文档
 
-建议按下面顺序阅读，先确认约束，再查接口和设计取舍：
+文档阅读顺序如下，建议先确认约束，再查接口和设计取舍：
 
 | 顺序 | 文档 | 用途 |
 |---|---|---|
@@ -326,7 +326,7 @@ dist/assets/index-XAAi25Fa.js   144.04 kB │ gzip: 52.37 kB
 ✓ built in 414ms
 ```
 
-> 注：上面的 `Duration` 与 `built in` 毫秒值会随机器负载波动；验收以 `8 passed (8)`、`89 passed (89)` 和 `55 modules transformed` 为准。
+> 注：`Duration` 与 `built in` 毫秒值会随机器负载波动；验收以 `8 passed (8)`、`89 passed (89)` 和 `55 modules transformed` 为准。
 
 此前使用临时 Playwright 脚本做过浏览器全链路验证，主要结果：
 
