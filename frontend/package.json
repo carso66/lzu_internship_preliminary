@@ -1,0 +1,19 @@
+{
+  "name": "lzu-marketplace-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "校园好物市集 · 前端方向作业（原生 HTML + ES Modules，零运行时依赖）",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "mock": "node mock/server.mjs",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.1"
+  }
+}
