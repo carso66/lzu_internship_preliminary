@@ -3,7 +3,7 @@ package cn.edu.lzu.marketplace.model;
 import java.time.LocalDateTime;
 
 /**
- * 订单领域模型，由订单服务组装并由数据访问层读写 orders 表。
+ * 订单领域模型，由订单服务组装并由数据访问层读写 orders 表；定义订单领域对象。
  *
  * <p>金额字段 unitPrice / totalAmount 使用 Long，以「分」为单位的整数存储，
  * 全程不使用浮点数。商品标题与单价取自下单时的快照，订单号由服务端根据自增主键生成。

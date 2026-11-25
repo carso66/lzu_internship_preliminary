@@ -6,7 +6,7 @@ import cn.edu.lzu.marketplace.model.PageResult;
 import java.util.Optional;
 
 /**
- * 订单数据访问接口。由订单服务调用，负责写入订单快照、编号回填和查询。
+ * 订单数据访问接口。由订单服务调用，负责写入订单快照、编号回填和查询；定义了哪些订单数据库操作。
  */
 public interface OrderRepository {
 

@@ -34,7 +34,7 @@ public class OrderController {
     }
 
     // ② 创建订单
-    // 请求体反序列化后由 Bean Validation 校验，订单服务完成下单后返回 HTTP 201 和订单快照。
+    // 接收买家的下单请求，反序列化后由 Bean Validation 校验。订单服务完成下单后，控制器返回 HTTP 201 和订单快照。
     @PostMapping
     public ResponseEntity<ApiResponse<OrderResponse>> create(
             @Valid @RequestBody CreateOrderRequest request) {
@@ -43,7 +43,7 @@ public class OrderController {
     }
 
     // ③ 订单详情
-    // 按正式订单号查找单笔订单，不存在时由异常处理器映射为 HTTP 404 和业务码 40401。
+    // 根据正式订单号查询订单详情，订单不存在时由异常处理器映射为 HTTP 404 和业务码 40401。
     @GetMapping("/{orderNo}")
     public ApiResponse<OrderResponse> getByOrderNo(@PathVariable String orderNo) {
         return ApiResponse.ok(orderService.getByOrderNo(orderNo));

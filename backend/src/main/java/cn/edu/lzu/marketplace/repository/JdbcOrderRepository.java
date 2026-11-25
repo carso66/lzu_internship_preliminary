@@ -53,11 +53,12 @@ import java.util.Optional;
 @Repository
 public class JdbcOrderRepository implements OrderRepository {
 
-    // 查询列与领域对象映射，供订单详情和列表使用；支付预留时间允许为空。
+    // 统一定义订单详情和列表查询需要读取的数据库字段。
     private static final String SELECT_COLUMNS =
             "id, order_no, product_id, product_title, quantity, unit_price, total_amount, "
                     + "buyer_name, buyer_phone, address, status, created_at, paid_at";
 
+    // 将数据库查询结果转换为 Java Order 对象，并处理可能为空的支付时间。
     private static final RowMapper<Order> ROW_MAPPER = (rs, rowNum) -> {
         Timestamp paidAt = rs.getTimestamp("paid_at");
         return new Order(
@@ -76,7 +77,7 @@ public class JdbcOrderRepository implements OrderRepository {
                 paidAt == null ? null : paidAt.toLocalDateTime());
     };
 
-    // 构造器接收 Spring 配置的 JdbcTemplate，订单写入使用当前事务的连接。
+    // 构造器接收 Spring 配置的 JdbcTemplate，用于执行 SQL。订单写入复用当前事务的连接。
     private final JdbcTemplate jdbcTemplate;
 
     public JdbcOrderRepository(JdbcTemplate jdbcTemplate) {

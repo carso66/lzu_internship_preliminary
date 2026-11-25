@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * 商品发布请求 DTO，定义客户端可填写的商品内容及校验约束。
+ * 商品发布请求 DTO，定义客户端可填写的商品内容及校验约束；接收发布商品的参数。
  *
  * <p>price 为 Long，以「分」为单位的整数（1990 表示 ¥19.90）；
  * 配合 JacksonConfig 的严格整数反序列化，字符串形式的数字或小数会直接 400。

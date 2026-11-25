@@ -352,8 +352,9 @@ mvn '-Dtest=OrderIntegrationTest,OrderRollbackIntegrationTest' test
 ## 自检清单
 
 - [x] 已验证空缓存冷启动。提交前独立冷启动验收在基于 HEAD 的副本中使用起始为空的临时 Maven 依赖目录，成功下载依赖、重新编译、通过 95 项测试并完成打包。
+- [x] 已对最终注释版运行 `mvn clean test`，95 项通过，0 失败、0 错误、0 跳过。
 - [x] 没提交 `node_modules` / `target` / `*.db` / `.env`（已用 `git ls-files` 核实：仓库内无构建产物；根 `.gitignore` 已覆盖 `target/`、`*.db`、`.env`）
-- [ ] `DESIGN.md`、`AI_USAGE.md` 已成稿。企业平台最终费用已核对并记录，`AI_USAGE.md` 第 6 节声明待本人确认后勾选。
+- [x] `DESIGN.md`、`AI_USAGE.md` 已填写完整。企业平台最终费用已核对并记录，`AI_USAGE.md` 第 6 节声明已由本人确认。
 - [ ] 截图放进了 `screenshots/`（前端）——**不适用**（后端方向）
 
 ## Git 提交记录（6 次有效开发提交，均已 push）

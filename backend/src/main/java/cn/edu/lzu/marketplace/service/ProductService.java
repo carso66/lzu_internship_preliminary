@@ -7,7 +7,7 @@ import cn.edu.lzu.marketplace.dto.ProductStatusRequest;
 import cn.edu.lzu.marketplace.dto.ProductStatusResponse;
 
 /**
- * 供商品控制器调用的业务接口，使用 DTO 表达请求和响应。
+ * 供商品控制器调用的业务接口，使用 DTO 表达请求和响应；规定了要做什么。
  */
 public interface ProductService {
 

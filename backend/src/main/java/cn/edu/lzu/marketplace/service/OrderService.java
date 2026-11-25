@@ -5,7 +5,7 @@ import cn.edu.lzu.marketplace.dto.OrderPageResponse;
 import cn.edu.lzu.marketplace.dto.OrderResponse;
 
 /**
- * 供订单控制器调用的业务接口，统一下单与订单查询的请求和返回类型。
+ * 供订单控制器调用的业务接口，统一下单与订单查询的请求和返回类型；定义订单服务接口。
  */
 public interface OrderService {
 

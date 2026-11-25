@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * 下单请求 DTO，定义 Controller 接受的商品、购买数量和买家信息。
+ * 下单请求 DTO，定义 Controller 接受的商品、购买数量和买家信息；接收创建订单的参数。
  *
  * <p>quantity 为 Integer，要求 ≥1；配合 JacksonConfig 的严格整数反序列化，
  * 字符串形式的数字（"2"）、小数（2.5 / 2.0）、空串都会被拒绝，缺失走 @NotNull，

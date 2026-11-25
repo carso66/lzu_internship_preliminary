@@ -5,7 +5,7 @@ import cn.edu.lzu.marketplace.model.Order;
 import java.time.LocalDateTime;
 
 /**
- * 订单响应 DTO，供下单结果、订单详情及列表明细共用。
+ * 订单响应 DTO，供下单结果、订单详情及列表明细共用；返回订单信息。
  *
  * <p>unitPrice 和 totalAmount 均为订单保存的金额快照，以整数分表示。
  * paidAt 是支付预留字段，当前接口不返回该字段。

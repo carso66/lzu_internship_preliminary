@@ -3,7 +3,7 @@ package cn.edu.lzu.marketplace.model;
 import java.time.LocalDateTime;
 
 /**
- * 商品领域模型，由业务层组装、由数据访问层映射到 products 表。
+ * 商品领域模型，由业务层组装、由数据访问层映射到 products 表；定义商品领域对象。
  *
  * <p>金额字段 price 使用 Long，以「分」为单位的整数存储，全程不使用浮点数。
  */

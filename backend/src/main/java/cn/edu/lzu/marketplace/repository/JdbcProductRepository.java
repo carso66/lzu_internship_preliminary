@@ -39,10 +39,11 @@ import java.util.Optional;
 @Repository
 public class JdbcProductRepository implements ProductRepository {
 
-    // 查询列及结果映射。详情和分页使用同一套映射，保持读取字段一致。
+    // 详情和分页使用同一组查询列，保持读取字段一致。
     private static final String SELECT_COLUMNS =
             "id, title, price, stock, category, description, status, seller_name, created_at";
 
+    // 将数据库中的一行记录转换为 Java Product 对象，供详情和分页共用。
     private static final RowMapper<Product> ROW_MAPPER = (rs, rowNum) -> new Product(
             rs.getLong("id"),
             rs.getString("title"),
@@ -54,14 +55,14 @@ public class JdbcProductRepository implements ProductRepository {
             rs.getString("seller_name"),
             rs.getTimestamp("created_at").toLocalDateTime());
 
-    // 构造器接收 Spring 配置的 JdbcTemplate，复用数据源及事务连接。
+    // 构造器接收 Spring 配置的 JdbcTemplate，复用数据源及事务连接，可用来执行 SQL 语句。
     private final JdbcTemplate jdbcTemplate;
 
     public JdbcProductRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    /** 发布商品：按列顺序绑定字段，并取回数据库生成的商品 ID。 */
+    /** 发布商品：按列顺序绑定字段，并取回数据库生成的商品 ID；INSERT，保存商品并获得自增 ID。 */
     @Override
     public Long insert(Product product) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -88,7 +89,7 @@ public class JdbcProductRepository implements ProductRepository {
         return key.longValue();
     }
 
-    /** 商品详情：按主键绑定查询条件，缺失结果由上层解释。 */
+    /** 商品详情：按主键绑定查询条件，缺失结果由上层解释；SELECT，获取指定商品信息。 */
     @Override
     public Optional<Product> findById(Long id) {
         List<Product> rows = jdbcTemplate.query(
@@ -96,7 +97,7 @@ public class JdbcProductRepository implements ProductRepository {
         return rows.stream().findFirst();
     }
 
-    /** 组合筛选与分页：用相同的 WHERE 条件统计总数并查询当前页。 */
+    /** 组合筛选与分页：根据关键词、状态和分类筛选商品，用相同的 WHERE 条件统计总数并查询当前页。 */
     @Override
     public PageResult<Product> findPage(long offset, int limit, String keyword, String status, String category) {
         // ① 动态筛选
@@ -137,7 +138,7 @@ public class JdbcProductRepository implements ProductRepository {
         return new PageResult<>(totalCount, items);
     }
 
-    /** 先转义反斜杠，再转义输入中的 % 和 _，使只有外层通配符参与子串匹配。 */
+    /** 先转义反斜杠，再转义输入中的 % 和 _，使只有外层通配符参与子串匹配；转义关键词中的特殊通配符，保证按字面含义进行模糊查询。 */
     private static String escapeLike(String keyword) {
         return keyword
                 .replace("\\", "\\\\")
@@ -151,7 +152,7 @@ public class JdbcProductRepository implements ProductRepository {
         return jdbcTemplate.update("UPDATE products SET status = ? WHERE id = ?", status, id);
     }
 
-    /** 下单扣库存：通过单条条件 UPDATE 原子检查上架状态及剩余库存。 */
+    /** 下单扣库存：通过单条条件 UPDATE 原子检查上架状态及剩余库存；通过原子条件 UPDATE 检查商品状态和库存并完成扣减，防止并发超卖。 */
     @Override
     public int deductStockIfAvailable(Long id, int quantity) {
         // 以执行更新时的库存为准，避免并发请求按同一份库存快照扣减。

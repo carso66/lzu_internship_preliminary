@@ -25,7 +25,7 @@ import java.util.UUID;
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    // 构造器注入两个 Repository，分别读取并扣减商品库存、持久化订单。
+    // 通过构造器注入商品和订单两个 Repository，分别用于读取商品与扣减库存、持久化订单。
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
 
@@ -34,7 +34,7 @@ public class OrderServiceImpl implements OrderService {
         this.orderRepository = orderRepository;
     }
 
-    /** 创建订单：先核对商品与金额，再扣减库存并保存订单快照。 */
+    /** 创建订单：检查商品并按库中单价计算金额，再扣减库存并保存订单快照。 */
     @Override
     @Transactional
     public OrderResponse create(CreateOrderRequest request) {
@@ -94,7 +94,7 @@ public class OrderServiceImpl implements OrderService {
         return OrderResponse.from(order.withId(id).withOrderNo(orderNo));
     }
 
-    /** 订单详情：按正式编号读取保存的订单快照。 */
+    /** 订单详情：按正式编号读取保存的订单快照；根据正式订单号查询订单详情。 */
     @Override
     public OrderResponse getByOrderNo(String orderNo) {
         Order order = orderRepository.findByOrderNo(orderNo)
@@ -102,7 +102,7 @@ public class OrderServiceImpl implements OrderService {
         return OrderResponse.from(order);
     }
 
-    /** 买家订单列表：将页码换算为偏移量，并把当前页领域对象映射为响应 DTO。 */
+    /** 买家订单列表：将页码换算为偏移量，并把当前页领域对象映射为响应 DTO；根据买家手机号分页查询订单，并转换为响应 DTO */
     @Override
     public OrderPageResponse list(Integer page, Integer pageSize, String buyerPhone) {
         int p = page == null ? 1 : page;
@@ -118,9 +118,9 @@ public class OrderServiceImpl implements OrderService {
     /**
      * 条件更新影响行数为 0 时的失败原因定位。
      *
-     * <p>前置已排除「不存在 / 下架」，但扣减动作与前置读取之间存在并发窗口：
-     * 可能因他人把库存扣到不足、或把商品下架而失败。这里重读一次，区分出
-     * 404（商品缺失）、40902（并发下架）和 40901（当前剩余库存不足）。
+     * <p>前置已排除「不存在 / 下架」，但扣减与前置读取之间可能发生库存变化或下架。
+     * 扣减未命中时重新查询商品，按重读结果选择业务码：商品缺失为 40401，已下架为 40902，
+     * 其余情况统一返回 40901（库存不足）。
      */
     private BusinessException resolveDeductFailure(Long productId) {
         Product p = productRepository.findById(productId).orElse(null);
@@ -139,6 +139,7 @@ public class OrderServiceImpl implements OrderService {
      *
      * <p>长度为 33 字符（"P" + 32 位十六进制 UUID），不超出 order_no 列声明的
      * VARCHAR(48)，详见 JdbcOrderRepository 表结构说明中的长度兼容性备注。
+     * UUID 降低临时订单号的冲突概率，数据库唯一约束拒绝重复编号。
      */
     private static String placeholderOrderNo() {
         return "P" + UUID.randomUUID().toString().replace("-", "");

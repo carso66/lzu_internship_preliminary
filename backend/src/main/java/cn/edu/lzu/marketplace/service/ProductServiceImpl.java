@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 商品业务实现。将控制层请求转换为领域对象，调用商品 Repository，并将查询或更新结果转换为响应 DTO。
+ * 实现 ProductService 定义的商品业务。将控制层请求转换为领域对象，调用商品 Repository，并将查询或更新结果转换为响应 DTO。
  */
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -28,7 +28,7 @@ public class ProductServiceImpl implements ProductService {
         this.productRepository = productRepository;
     }
 
-    /** 发布商品：组装商品、写入默认状态和时间，保存后使用生成的主键构造响应。 */
+    /** 发布商品：组装商品、写入默认状态和时间，保存后使用生成的主键构造响应；组装商品对象，设置默认的状态和时间，保存商品 */
     @Override
     public ProductResponse create(ProductCreateRequest request) {
         // 发布请求只携带商品内容；初始上架状态与创建时间由服务端补齐。
@@ -54,7 +54,7 @@ public class ProductServiceImpl implements ProductService {
         return ProductResponse.from(product);
     }
 
-    /** 筛选与分页：把对外页码转换为数据库偏移量，并补齐响应分页信息。 */
+    /** 筛选与分页：把对外页码转换为数据库偏移量，并补齐响应分页信息；计算分页偏移量，调用数据访问层查询 */
     @Override
     public ProductPageResponse list(Integer page, Integer pageSize, String keyword, String status, String category) {
         int p = page == null ? 1 : page;
@@ -68,7 +68,7 @@ public class ProductServiceImpl implements ProductService {
         return new ProductPageResponse(result.total(), p, size, items);
     }
 
-    /** 上下架：根据 UPDATE 的影响行数判断商品是否存在。 */
+    /** 上下架：将商品更新为请求指定的状态，UPDATE 影响 0 行时视为商品不存在。 */
     @Override
     public ProductStatusResponse updateStatus(Long id, ProductStatusRequest request) {
         int updated = productRepository.updateStatus(id, request.status());

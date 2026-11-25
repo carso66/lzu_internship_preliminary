@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter;
  * 根据下单日期和订单主键生成正式订单号，格式为 {@code SO + yyyyMMdd + 序号}。
  *
  * <p>主键在当前订单表内唯一，序号最少六位且不截断，数据库同时约束 order_no 唯一。
- * 日期便于识别下单日期，序号跨天继续递增。同日重启空 H2 内存库后可能重新生成相同编号。
+ * 日期部分仅取自下单时间的年月日，序号跨天继续递增。同日重启空 H2 内存库后可能重新生成相同编号。
  */
 public final class OrderNoGenerator {
 

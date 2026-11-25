@@ -5,7 +5,7 @@ import cn.edu.lzu.marketplace.model.Product;
 import java.time.LocalDateTime;
 
 /**
- * 商品响应 DTO，供发布结果、详情和列表明细共用，价格单位为分。
+ * 商品响应 DTO，供发布结果、详情和列表明细共用，价格单位为分；返回商品信息。
  */
 public record ProductResponse(
         Long id,
