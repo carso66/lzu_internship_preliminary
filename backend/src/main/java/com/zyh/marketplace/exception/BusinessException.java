@@ -22,6 +22,14 @@ public class BusinessException extends RuntimeException {
         return new BusinessException(ErrorCode.NOT_FOUND, message);
     }
 
+    public static BusinessException insufficientStock(String message) {
+        return new BusinessException(ErrorCode.INSUFFICIENT_STOCK, message);
+    }
+
+    public static BusinessException productOff(String message) {
+        return new BusinessException(ErrorCode.PRODUCT_OFF, message);
+    }
+
     public ErrorCode getErrorCode() {
         return errorCode;
     }

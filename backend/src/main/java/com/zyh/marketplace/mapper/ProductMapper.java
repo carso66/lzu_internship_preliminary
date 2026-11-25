@@ -57,4 +57,16 @@ public interface ProductMapper {
     /** 只更新 status；返回受影响行数（0 表示商品不存在） */
     @Update("UPDATE products SET status = #{status} WHERE id = #{id}")
     int updateStatus(@Param("id") Long id, @Param("status") String status);
+
+    /**
+     * 原子扣库存（L1-6 下单使用，L2-10 并发验证沿用同一约定）：
+     * 把「库存充足」和「仍在架」两个条件合并进同一条 UPDATE，依赖数据库行锁串行化并发，
+     * 不依赖 JVM 锁、不引入 Redis 等额外组件。
+     * 受影响行数 = 1 → 扣减成功；= 0 → 商品不存在 / 已下架 / 库存不足三者之一，
+     * 由调用方回查商品行区分（本接口不猜）。
+     * 与 schema.sql 顶部注释、DESIGN.md 2.2 节约定的方案保持一致。
+     */
+    @Update("UPDATE products SET stock = stock - #{quantity} "
+            + "WHERE id = #{id} AND stock >= #{quantity} AND status = 'on'")
+    int deductStockIfAvailable(@Param("id") Long id, @Param("quantity") int quantity);
 }

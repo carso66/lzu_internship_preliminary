@@ -1,5 +1,6 @@
 package com.zyh.marketplace.support;
 
+import com.zyh.marketplace.dto.CreateOrderRequest;
 import com.zyh.marketplace.dto.CreateProductRequest;
 import com.zyh.marketplace.dto.UpdateProductStatusRequest;
 import com.zyh.marketplace.exception.BusinessException;
@@ -48,6 +49,19 @@ public class RequestBodyParser {
         UpdateProductStatusRequest request = new UpdateProductStatusRequest();
         request.setStatus(stringField(root, "status"));
         request.setUnknownField(firstUnknownField(root, Set.of("status")));
+        return request;
+    }
+
+    public CreateOrderRequest parseCreateOrder(String body) {
+        JsonNode root = readObject(body);
+        CreateOrderRequest request = new CreateOrderRequest();
+        request.setProductId(integerField(root, "productId"));
+        request.setQuantity(integerField(root, "quantity"));
+        request.setBuyerName(stringField(root, "buyerName"));
+        request.setBuyerPhone(stringField(root, "buyerPhone"));
+        request.setAddress(stringField(root, "address"));
+        request.setUnknownField(firstUnknownField(root,
+                Set.of("productId", "quantity", "buyerName", "buyerPhone", "address")));
         return request;
     }
 

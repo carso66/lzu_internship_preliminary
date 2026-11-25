@@ -32,8 +32,27 @@ public abstract class ApiTestSupport {
 
     protected void truncateProducts() {
         jdbcTemplate.execute("DELETE FROM orders");
+        jdbcTemplate.execute("ALTER TABLE orders ALTER COLUMN id RESTART WITH 1");
         jdbcTemplate.execute("DELETE FROM products");
         jdbcTemplate.execute("ALTER TABLE products ALTER COLUMN id RESTART WITH 1");
+    }
+
+    protected ResultActions postOrder(String json) throws Exception {
+        return mockMvc.perform(post("/api/orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json));
+    }
+
+    protected ResultActions getOrder(String orderNo) throws Exception {
+        return mockMvc.perform(get("/api/orders/{orderNo}", orderNo));
+    }
+
+    protected ResultActions listOrders(String... nameValuePairs) throws Exception {
+        var builder = get("/api/orders");
+        for (int i = 0; i + 1 < nameValuePairs.length; i += 2) {
+            builder.queryParam(nameValuePairs[i], nameValuePairs[i + 1]);
+        }
+        return mockMvc.perform(builder);
     }
 
     protected ResultActions postProduct(String json) throws Exception {
@@ -81,6 +100,18 @@ public abstract class ApiTestSupport {
                         + "VALUES (?, ?, ?, ?, NULL, ?, ?, CAST(? AS TIMESTAMP))",
                 title, price, stock, category, status, seller, createdAt);
         Long id = jdbcTemplate.queryForObject("SELECT MAX(id) FROM products", Long.class);
+        return id == null ? -1 : id;
+    }
+
+    /** 直接落库一条订单（须满足 CHECK total_amount = unit_price * quantity），返回自增 id */
+    protected long insertOrderDirectly(String orderNo, long productId, String title, int quantity, long unitPrice,
+                                       String buyerName, String buyerPhone, String address, String createdAt) {
+        jdbcTemplate.update("INSERT INTO orders (order_no, product_id, product_title, quantity, unit_price, "
+                        + "total_amount, buyer_name, buyer_phone, address, status, created_at) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'created', CAST(? AS TIMESTAMP))",
+                orderNo, productId, title, quantity, unitPrice, unitPrice * quantity,
+                buyerName, buyerPhone, address, createdAt);
+        Long id = jdbcTemplate.queryForObject("SELECT MAX(id) FROM orders", Long.class);
         return id == null ? -1 : id;
     }
 }
