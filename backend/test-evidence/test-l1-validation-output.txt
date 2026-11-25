@@ -1,0 +1,29 @@
+Target: http://localhost:58482
+Test buyer identifier: L1TEST755e0a353e1b
+Creates 3 products and 3 successful orders. Does not delete existing data.
+PASS: health
+Products: main=1 off=2 overflow=3
+  orderNo=SO20261125DB6F2FCC03A746EA88F20A5573AF16CE
+PASS: normal order: server price, normalized phone, stock deduction
+PASS: order detail
+PASS: quantity zero
+PASS: quantity negative
+PASS: quantity string
+PASS: quantity decimal
+PASS: quantity null
+PASS: insufficient stock
+PASS: off product
+PASS: missing product
+PASS: amount overflow
+PASS: missing order
+PASS: page zero
+PASS: pageSize too large
+PASS: missing buyerPhone
+PASS: second order
+PASS: phone normalization and first page
+PASS: second page
+PASS: page beyond end
+PASS: empty filtered list
+PASS: quantity equals remaining stock
+RESULT: 22 passed, 0 failed.
+Database INSERT failure rollback and concurrent orders are verified by OrderIntegrationTest (run mvnw.cmd test).
