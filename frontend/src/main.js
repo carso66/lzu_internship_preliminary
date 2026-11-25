@@ -1,64 +1,30 @@
 import { listProducts } from './api.js';
-import { formatCny } from './money.js';
-import { displayTitle } from './text.js';
+import { el } from './dom.js';
+import { productList } from './product-list.js';
 
 /**
- * 阶段 0：只验证「mock -> fetch -> 渲染」这条链路通不通。
- * 加载态 / 空态 / 发布 / 上下架 / 下单 都还没做，下一步再补。
+ * 入口：拉数据 -> 渲染列表。
+ * 加载态 / 错误态留在这里；列表本身交给 product-list.js（L0-1）。
  */
 
 const app = document.querySelector('#app');
-
-/** 用 createElement + textContent 建 DOM，不拼 innerHTML：
- *  db.json 里商品 24 的标题就是 <script>alert('xss')</script>，拼字符串会直接踩坑。
- */
-function el(tag, props = {}, children = []) {
-  const node = document.createElement(tag);
-  Object.assign(node, props);
-  for (const child of children) node.append(child);
-  return node;
-}
 
 function renderLoading() {
   app.replaceChildren(el('p', { className: 'state', textContent: '加载中…' }));
 }
 
 function renderError(message) {
-  app.replaceChildren(el('p', { className: 'state', textContent: message }));
-}
-
-function renderProducts(items) {
-  const head = el('tr', {}, [
-    el('th', { textContent: 'ID' }),
-    el('th', { textContent: '标题' }),
-    el('th', { textContent: '价格' }),
-    el('th', { textContent: '库存' }),
-    el('th', { textContent: '分类' }),
-    el('th', { textContent: '状态' }),
-  ]);
-
-  const rows = items.map((item) => {
-    // 标题走 displayTitle：只清洗"显示"，商品数据本身不变
-    const title = displayTitle(item.title);
-    return el('tr', {}, [
-      el('td', { textContent: String(item.id) }),
-      el('td', { className: 'col-title', textContent: title, title }),
-      el('td', { className: 'price', textContent: formatCny(item.price) }),
-      el('td', { textContent: String(item.stock) }),
-      el('td', { textContent: item.category }),
-      el('td', { textContent: item.status === 'on' ? '在售' : '已下架' }),
-    ]);
-  });
-
-  app.replaceChildren(el('table', { className: 'product-table' }, [el('thead', {}, [head]), el('tbody', {}, rows)]));
+  app.replaceChildren(el('p', { className: 'state state-error', textContent: message }));
 }
 
 async function boot() {
   renderLoading();
   try {
+    // mock 的 pageSize：文档写默认 8、代码实际是 50。这里显式传 50 一次取全 24 条，
+    // 不依赖服务端默认值（验收要求：列表必须能访问到全部商品）
     const { total, items } = await listProducts({ pageSize: 50 });
     console.log(`接口返回 ${items.length} 条 / 共 ${total} 条`);
-    renderProducts(items);
+    app.replaceChildren(productList(items));
   } catch (error) {
     renderError(error.message);
     console.error(error);

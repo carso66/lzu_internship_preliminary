@@ -1,6 +1,7 @@
 :root {
   --border: #dcdfe6;
   --muted: #909399;
+  --weak: #a8abb2;
   --text: #303133;
   --danger: #c45656;
   --success: #3a8f5a;
@@ -40,15 +41,27 @@ body {
   padding: 20px;
 }
 
+/* 加载态 / 错误态 */
 .state {
   padding: 32px 0;
   text-align: center;
   color: var(--muted);
 }
 
+.state-error {
+  color: var(--danger);
+}
+
+.list-summary {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+/* 列表表格：table-layout: fixed 才能让列的省略号真正生效 */
 .product-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   background: #fff;
 }
 
@@ -57,23 +70,93 @@ body {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .product-table th {
   background: #fafafa;
   font-weight: 600;
+  white-space: nowrap;
 }
 
-/* 长标题：单行省略，不撑破布局 */
-.col-title {
-  max-width: 260px;
+/* 列宽：标题列吃掉剩余空间，其余定宽 */
+.w-id {
+  width: 64px;
+}
+
+.w-price {
+  width: 120px;
+}
+
+.w-stock {
+  width: 150px;
+}
+
+.w-category {
+  width: 90px;
+}
+
+.w-status {
+  width: 100px;
+}
+
+/* 长标题单行省略（商品 23 是超长标题） */
+.ellipsis {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.price {
+.col-price,
+.col-stock {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* 徽标 */
+.badge {
+  display: inline-block;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 20px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.badge-on {
+  color: var(--success);
+  background: #eaf6ee;
+  border-color: #b7e0c6;
+}
+
+.badge-off {
+  color: #8a8a8a;
+  background: #f2f3f5;
+  border-color: var(--border);
+}
+
+.badge-out {
+  margin-left: 6px;
+  color: var(--danger);
+  background: #fdeeee;
+  border-color: #f0c2c2;
+}
+
+.badge-unknown {
+  color: #a0522d;
+  background: #fdf3e7;
+  border-color: #f0d3b0;
+}
+
+/* 缺货行整体灰化：与其它行肉眼可辨（配合「缺货」标签双重区分） */
+.is-sold-out td {
+  background: #fafafa;
+  color: var(--weak);
+}
+
+.is-sold-out .ellipsis {
+  color: var(--weak);
+}
+
