@@ -1,9 +1,13 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { getProducts, updateProductStatus } from '../api/index.js'
-import ProductCard from '../components/ProductCard.vue'
+import ProductGroupCard from '../components/ProductGroupCard.vue'
 import { canManageProduct } from '../utils/permissions.js'
 import { normalizeProductTitle } from '../utils/product.js'
+import {
+  buildProductGroups,
+  summarizeGroupPermissions,
+} from '../utils/productGroups.js'
 
 const props = defineProps({
   orderingProductId: {
@@ -39,10 +43,41 @@ const filteredProducts = computed(() => {
   )
 })
 
+const productGroups = computed(() =>
+  buildProductGroups(filteredProducts.value, props.session),
+)
+
+const visibleListings = computed(() =>
+  productGroups.value.flatMap((group) => group.listings),
+)
+
+const pagePermissions = computed(() =>
+  summarizeGroupPermissions(visibleListings.value, props.session),
+)
+
+const permissionSummary = computed(() => {
+  const permissions = pagePermissions.value
+  const coverage = `共 ${permissions.totalCount} 件商品、${productGroups.value.length} 类`
+
+  if (permissions.scope === 'all') {
+    return `当前身份：${permissions.roleLabel}，${coverage}，可管理全部商品。`
+  }
+
+  if (permissions.scope === 'partial') {
+    return `当前身份：${permissions.roleLabel}，${coverage}，可管理 ${permissions.manageableCount}/${permissions.totalCount} 件，其余仅可浏览。`
+  }
+
+  return `当前身份：${permissions.roleLabel}，${coverage}，仅可浏览。`
+})
+
+const permissionScopeClass = computed(
+  () => `product-list-view__permission-scope--${pagePermissions.value.scope}`,
+)
+
 const viewState = computed(() => {
   if (loading.value) return 'loading'
   if (errorMessage.value) return 'error'
-  if (filteredProducts.value.length === 0) return 'empty'
+  if (productGroups.value.length === 0) return 'empty'
   return 'ready'
 })
 
@@ -196,8 +231,28 @@ onUnmounted(() => {
     </header>
 
     <p class="product-list-view__rules">
-      同名商品以商品编号区分；来源名称为展示信息，卖家身份未核验时仅供参考。
+      相近商品归在一起展示；每件商品的价格、库存和操作仍单独计算。
     </p>
+
+    <section
+      v-if="viewState === 'ready'"
+      class="product-list-view__permission-summary"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      <div>
+        <p class="product-list-view__permission-eyebrow">当前权限</p>
+        <p class="product-list-view__permission-text">
+          {{ permissionSummary }}
+        </p>
+      </div>
+      <span
+        class="product-list-view__permission-scope"
+        :class="permissionScopeClass"
+      >
+        {{ pagePermissions.scopeLabel }}
+      </span>
+    </section>
 
     <Transition name="action-notice">
       <p
@@ -236,15 +291,14 @@ onUnmounted(() => {
       <button type="button" @click="clearFilter">清空筛选</button>
     </section>
 
-    <section v-else class="product-list-view__grid" aria-label="商品列表">
-      <ProductCard
-        v-for="product in filteredProducts"
-        :key="product.id"
-        :product="product"
-        :ordering="String(orderingProductId) === String(product.id)"
-        :order-locked="orderingProductId !== null"
-        :status-updating="isStatusUpdating(product.id)"
-        :can-manage="canManage(product)"
+    <section v-else class="product-list-view__groups" aria-label="商品列表">
+      <ProductGroupCard
+        v-for="group in productGroups"
+        :key="group.key"
+        :group="group"
+        :session="session"
+        :ordering-product-id="orderingProductId"
+        :status-updating-ids="statusUpdatingIds"
         @buy="handleBuy"
         @toggle-status="handleToggleStatus"
       />
@@ -359,10 +413,61 @@ onUnmounted(() => {
 }
 
 .product-list-view__rules {
-  margin: -10px 0 20px;
+  margin: -10px 0 16px;
   color: #71717a;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.product-list-view__permission-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 0 18px;
+  padding: 13px 15px;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.product-list-view__permission-eyebrow {
+  margin: 0 0 3px;
+  color: #a1a1aa;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.product-list-view__permission-text {
+  margin: 0;
+  color: #3f3f46;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.product-list-view__permission-scope {
+  flex: none;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.product-list-view__permission-scope--all {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.product-list-view__permission-scope--partial {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.product-list-view__permission-scope--none {
+  background: #e4e4e7;
+  color: #52525b;
 }
 
 .product-list-view__action-notice {
@@ -395,10 +500,9 @@ onUnmounted(() => {
   transform: translateY(-4px);
 }
 
-.product-list-view__grid {
+.product-list-view__groups {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
-  gap: 16px;
+  gap: 18px;
 }
 
 .product-list-view__state {
@@ -440,8 +544,10 @@ onUnmounted(() => {
     flex-direction: column;
   }
 
-  .product-list-view__grid {
-    grid-template-columns: 1fr;
+  .product-list-view__permission-summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
   }
 }
 </style>

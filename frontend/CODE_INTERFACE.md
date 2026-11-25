@@ -14,6 +14,7 @@ index.html
       │   └─ src/router/routes.js
       └─ src/App.vue
           ├─ src/views/ProductListView.vue
+          │   ├─ src/components/ProductGroupCard.vue
           │   └─ src/components/ProductCard.vue
           ├─ src/views/ProductCreateView.vue
           │   └─ src/components/ProductForm.vue
@@ -24,8 +25,8 @@ index.html
           ├─ src/api/index.js
           ├─ src/api/index.test.js
           ├─ src/router/index.test.js
-          ├─ src/utils/money.js / product.js / quantity.js / productForm.js / permissions.js
-          └─ src/utils/money.test.js / product.test.js / quantity.test.js / productForm.test.js / permissions.test.js
+          ├─ src/utils/money.js / product.js / quantity.js / productForm.js / permissions.js / productGroups.js
+          └─ src/utils/money.test.js / product.test.js / quantity.test.js / productForm.test.js / permissions.test.js / productGroups.test.js
 ```
 
 各层职责：
@@ -38,7 +39,7 @@ index.html
 | 页面 | `src/views/` | 发起数据请求、维护页面状态、组合组件 |
 | 业务组件 | `src/components/` | 展示和局部交互，通过 props/emits 与页面通信 |
 | API 层 | `src/api/index.js` | 环境化基础地址、fetch、响应解析、导出接口函数；`index.test.js` 固化请求封装 |
-| 工具层 | `src/utils/` | 金额换算、金额展示、标题清洗、数量校验、表单校验、角色与商品归属判断及对应单测 |
+| 工具层 | `src/utils/` | 金额换算、金额展示、标题清洗、数量校验、表单校验、角色与商品归属判断、商品展示聚合及对应单测 |
 | Mock 服务 | `mock/server.mjs` | 只读模拟后端，提供业务接口和内存数据 |
 
 ## 2. 启动入口与路由接口
@@ -78,7 +79,7 @@ createApp(App).use(router).mount('#app')
 `App.vue` 是全局协调层：
 
 - 渲染顶部导航（商品列表 / 上架商品 / 我的订单）和 `RouterView`。
-- 显示明确标注的“演示身份：管理员”；该身份不是认证结果。
+- 显示明确标注的“演示角色 / 演示身份”切换器；角色变化后通过 `createDemoSession()` 生成新的演示会话，该身份不是认证结果。
 - 统一监听所有页面冒泡的 `buy` 事件。
 - 调用 `createOrder({ productId, quantity })`。
 - 下单成功后递增 `ordersRefreshKey`，跳转 `/orders`。
@@ -107,16 +108,18 @@ createApp(App).use(router).mount('#app')
 
 ### 2.4 权限与演示会话
 
-`src/utils/permissions.js` 定义角色常量、角色中文名、演示会话和商品管理判定。当前 `App.vue` 只在商品列表和商品详情路由传入 `DEMO_SESSION`，用于展示和体验上下架权限，不用于登录或接口鉴权。
+`src/utils/permissions.js` 定义角色常量、角色中文名、演示会话工厂和商品管理判定。`App.vue` 在顶部提供游客 / 买家 / 卖家 / 管理员切换器；选择卖家时可填写卖家编号，并通过 `createDemoSession()` 生成动态演示会话。只有商品列表和商品详情路由会收到该会话，用于展示和体验上下架权限，不用于登录或接口鉴权。
 
 | 角色 | 目标权限范围 | 当前实现 |
 |---|---|---|
-| 游客 | 浏览商品 | 无真实游客会话；页面可浏览 |
-| 买家 | 浏览、下单、支付、查看本人订单 | 下单/支付 UI 存在；订单归属未校验 |
-| 卖家 | 管理本人商品 | `canManageProduct()` 按 `sellerId` 精确匹配；缺少真实登录数据 |
-| 管理员 | 审核、强制下架、处理举报、查看审计日志 | 演示管理员可切换商品状态；其他管理能力未实现 |
+| 游客 | 浏览商品 | 可切换到游客演示；商品管理显示“仅浏览” |
+| 买家 | 浏览、下单、支付、查看本人订单 | 可切换到买家演示；下单/支付 UI 存在，订单归属未校验 |
+| 卖家 | 管理本人商品 | 可输入演示卖家编号；`canManageProduct()` 按 `sellerId` 精确匹配，当前 Mock 商品没有该字段 |
+| 管理员 | 审核、强制下架、处理举报、查看审计日志 | 默认管理员演示可切换商品状态；其他管理能力未实现 |
 
-演示会话只控制前端按钮和提示。任何真实写操作都必须在服务端重新校验当前用户、角色和资源归属，不能信任客户端提交的 `role` 或 `sellerId`。
+演示会话只控制前端按钮和提示。切换步骤：在顶部选择角色；选择卖家后输入卖家编号；观察页面级、组级和 listing 级权限同步变化。游客 / 买家为 `none`，管理员为 `all`，卖家仅在存在匹配 `sellerId` 时为 `partial` 或 `all`。当前 Mock 商品没有 `sellerId`，因此卖家页面实际为 `none`，不能用伪造编号冒充来源认证。
+
+任何真实写操作都必须在服务端重新校验当前用户、角色和资源归属，不能信任客户端提交的 `role` 或 `sellerId`。
 
 ## 3. API 客户端接口
 
@@ -235,13 +238,36 @@ try {
 | `stock` | number | 库存，0~999 |
 | `category` | string | 五种分类之一 |
 | `status` | `'on' \| 'off'` | 在售 / 已下架 |
+| `spuId` | `number \| string \| undefined` | 可选标准商品单元 ID；存在时聚合展示优先按它分组。当前 Mock 数据没有该字段 |
 | `sellerId` | `number \| string \| undefined` | 可选卖家用户 ID；卖家管理权限只按该字段与当前用户 ID 是否一致判断。当前 Mock 数据和新发布商品均没有该字段 |
 | `sellerName` | string | 卖家展示名称；缺失时卡片和详情显示“匿名卖家”。没有有效 `sellerId` 时界面显示“身份未核验”；该字段不是认证身份，也不能作为权限依据 |
 | `description` | string | 商品描述 |
 
-商品标题可以重复，`id` 才是列表项和数据记录的唯一身份。多个卖家发布同名商品时，应当保留为多条独立 listing，并分别展示商品编号、卖家来源、价格、库存和状态，而不是按标题合并。
+商品标题可以重复，`id` 才是列表项和数据记录的唯一身份。多个卖家发布同名商品时，可以在展示层按 `spuId` 或规范化标题聚合，但每条 listing 的商品编号、卖家来源、价格、库存、状态和权限必须独立保留；不得在数据层按标题合并或静默去重。
 
-### 4.2 `Order`
+### 4.2 `ProductGroup` 聚合展示结构
+
+`buildProductGroups()` 返回的组只存在于展示层，不是后端商品实体，也不能作为权限资源。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `key` | string | 展示分组键，形如 `spu:*`、`title:*` 或 `listing:*`；不能用于权限判断 |
+| `groupingMode` | `'spu' \| 'title' \| 'listing'` | 分组依据；`listing` 表示无标题时保留为独立组 |
+| `title` | string | 组标题，取组内首条 listing 的清洗后标题 |
+| `listings` | `Product[]` | 组内全部独立 listing，保留原对象 |
+| `listingCount` | number | 组内 listing 数 |
+| `sourceCount` | number | 来源数；有 `sellerId` 的按卖家 ID 去重，缺少编号的 listing 各自计为独立来源 |
+| `identifiedSourceCount` | number | 带有效 `sellerId` 的不同卖家数；“有编号”不等于已实名认证 |
+| `missingSellerIdCount` | number | 缺少有效 `sellerId` 的 listing 数 |
+| `priceMin` / `priceMax` | `number \| null` | 有效价格区间，单位分；无有效价格时为 `null` |
+| `totalStock` | number | 组内有效库存之和，异常库存按 0 计 |
+| `onSaleCount` | number | `status === 'on'` 的 listing 数 |
+| `availableCount` | number | 在售且库存大于 0 的 listing 数 |
+| `offShelfCount` | number | 非在售 listing 数 |
+| `soldOutCount` | number | 库存小于等于 0 的 listing 数 |
+| `permissions` | object | 当前会话的组级权限摘要，结构见 5.6 |
+
+### 4.3 `Order`
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -256,7 +282,7 @@ try {
 | `createdAt` | string | 创建时间 |
 | `paidAt` | `string \| null` | 支付时间 |
 
-### 4.3 `Payment`
+### 4.4 `Payment`
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -267,7 +293,7 @@ try {
 | `status` | `'processing' \| 'paid'` | 支付状态 |
 | `paidAt` | `string \| null` | 支付完成时间 |
 
-### 4.4 分页对象
+### 4.5 分页对象
 
 商品和订单列表接口当前都返回：
 
@@ -349,7 +375,8 @@ validateProductForm(form) -> { valid: boolean, errors: Record<string, string> }
 ```js
 USER_ROLES // { visitor, buyer, seller, admin }
 ROLE_LABELS // 角色中文名
-DEMO_SESSION // { id: 'demo-admin', name: '演示管理员', role: 'admin', isDemo: true }
+createDemoSession(role = USER_ROLES.admin, sellerId = '') -> Readonly<Session>
+DEMO_SESSION // 默认管理员演示会话：{ id: 'demo-admin', name: '演示管理员', role: 'admin', isDemo: true }
 canManageProduct(product, session) -> boolean
 ```
 
@@ -361,7 +388,25 @@ canManageProduct(product, session) -> boolean
 - `sellerId` 缺失、空白，或只有同名 `sellerName`：拒绝。
 - 函数只用于前端体验控制；服务端必须重新执行同样的归属校验。
 
-`permissions.test.js` 固化无会话、游客/买家、卖家本人/他人、数字字符串 ID、同名不同人、空 `sellerId`、管理员和演示会话九组边界。
+`createDemoSession()` 会校验角色；未知角色降级为游客。卖家编号会去除首尾空白，未填写时保持空 ID，从而由 `canManageProduct()` 按失败关闭处理。`permissions.test.js` 固化无会话、游客/买家、卖家本人/他人、数字字符串 ID、同名不同人、空 `sellerId`、管理员、演示会话、默认管理员、卖家编号清洗、空编号和未知角色降级等边界。
+
+### 5.6 `src/utils/productGroups.js`
+
+```js
+buildProductGroups(products, session = null) -> ProductGroup[]
+summarizeGroupPermissions(listings = [], session = null) -> {
+  role, roleLabel, manageableCount, totalCount,
+  scope: "all" | "partial" | "none",
+  scopeLabel, canManageAll, permissionLabel
+}
+```
+
+- `buildProductGroups()` 仅接受数组；非数组、`null` 和 `undefined` 返回空数组。
+- 分组优先使用 `spuId`；没有 `spuId` 时，使用 `normalizeProductTitle()` 后的标题做展示回退，匹配键忽略大小写与空白。
+- listing 身份始终是 `id`；重复 `id` 只保留第一条，无标题商品保留为独立组。
+- 聚合只计算展示摘要，不合并卖家身份、库存所有权或权限。
+- `summarizeGroupPermissions()` 逐条调用 `canManageProduct()`，再根据覆盖比例返回 `all / partial / none`。
+- `permissions.test.js` 之外，`productGroups.test.js` 固化 SPU 优先、标题回退、重复 ID、无标题、异常价格库存、来源计数和权限三态。
 
 ## 6. 业务组件接口
 
@@ -436,7 +481,34 @@ canManageProduct(product, session) -> boolean
 - 来源取 `sellerName`，缺失或空白时显示“匿名卖家”；没有有效 `sellerId` 时额外显示“身份未核验”。该字段只用于展示，不证明卖家身份。
 - 没有管理权限时按钮文案为“无管理权限”并禁用；点击处理函数内部也会再次检查 `canManage`，不能只依赖按钮的 disabled 状态。
 
-### 6.3 `OrderCard.vue`
+### 6.3 `ProductGroupCard.vue`
+
+职责：展示一个聚合组、默认折叠策略、组头摘要和组级权限，并把每个 listing 交给 `ProductCard`。
+
+**Props**：
+
+| Prop | 类型 | 默认值 | 作用 |
+|---|---|---|---|
+| `group` | Object | 必填 | `buildProductGroups()` 生成的聚合组 |
+| `session` | `object \| null` | `null` | 当前会话；用于逐条判断 listing 的展示权限 |
+| `orderingProductId` | `number \| string \| null` | `null` | 当前正在下单的商品 |
+| `statusUpdatingIds` | Object | `new Set()` | 正在更新状态的商品 ID 集合 |
+
+**Emits**：
+
+| 事件 | 载荷 | 触发时机 |
+|---|---|---|
+| `buy` | `{ product, quantity }` | 组内某条 listing 发起购买 |
+| `toggle-status` | `product` | 组内某条 listing 发起上下架 |
+
+内部行为：
+
+- 单 listing 组默认展开，多 listing 组默认折叠。
+- 组头展示分组方式、listing 数、来源数、带卖家编号来源数、缺少卖家编号条数、价格区间、库存合计和状态摘要。
+- 组级权限只展示 `all / partial / none` 摘要；展开后 `ProductCard` 仍按每条 listing 的 `canManageProduct()` 结果控制按钮。
+- 组内说明明确写出“仅做展示聚合；商品编号、来源、库存和上下架权限仍各自独立”。
+
+### 6.4 `OrderCard.vue`
 
 职责：展示单个订单、选择支付方式、触发支付事件。
 
@@ -486,7 +558,9 @@ canManageProduct(product, session) -> boolean
 - 维护互斥的 loading/error/empty/ready 状态。
 - 每次加载递增 `loadRequestId`，只允许最新请求回写；卸载时递增 ID，使在途请求失效。
 - 请求前调用 `canManageProduct(product, props.session)`，再用 `statusUpdatingIds` 做商品级锁；无权限时提示“仅商品所有者或管理员可以变更商品状态”。
-- 向 `ProductCard` 传递 `can-manage`，并显示“同名商品以商品编号区分；来源名称为展示信息”的说明。
+- 将 `filteredProducts` 交给 `buildProductGroups(filteredProducts, session)`，再渲染 `ProductGroupCard`；组内仍逐条渲染 `ProductCard`。
+- 向 `ProductCard` 传递 `can-manage`，并显示“SPU 优先、标题回退、listing 独立”的说明。
+- 页面级权限摘要由 `summarizeGroupPermissions()` 汇总当前可见 listing，并通过 `aria-live="polite"` 持续播报变化。
 - 标题区提供进入 `/products/new` 的“上架商品”入口；列表页不再嵌入发布表单。
 - 组件卸载时设置 `cancelled`，阻止旧请求回写。
 
@@ -558,6 +632,8 @@ ProductListView onMounted
   -> request() 解包 data
   -> 仅最新请求可写回 data.items
   -> filteredProducts
+  -> buildProductGroups(filteredProducts, session)
+  -> ProductGroupCard
   -> ProductCard
 ```
 
@@ -587,7 +663,7 @@ ProductCard 点击上架/下架
   -> 成功后只更新对应商品状态
 ```
 
-当前演示管理员因此可以操作全部商品。卖家分支虽然已有单测，但没有真实登录、服务端会话和 Mock `sellerId`，尚未构成真实权限隔离。
+默认演示管理员因此可以操作全部商品；顶部切换到游客、买家或卖家后会立即重算权限。卖家分支已有 `createDemoSession()` 和 `canManageProduct()` 单测，但没有真实登录、服务端会话和 Mock `sellerId`，尚未构成真实权限隔离。
 
 ### 8.4 选择数量并下单
 
@@ -699,7 +775,10 @@ OrderListView onMounted / refreshKey 变化
 | `src/utils/product.js` | `product.test.js`、列表、详情、订单卡片 |
 | `src/utils/quantity.js` | `quantity.test.js`、`App.vue`、商品卡片/详情页禁购与数量边界 |
 | `src/utils/productForm.js` | `productForm.test.js`、`ProductForm.vue` 的字段校验与字数展示 |
-| `src/utils/permissions.js` | `permissions.test.js`、`App.vue` 的演示会话、`ProductListView` / `ProductDetailView` 的权限提示 |
+| `src/utils/permissions.js` | `permissions.test.js`、`App.vue` 的演示角色切换与 `createDemoSession()`、`ProductListView` / `ProductDetailView` 的权限提示、`productGroups.js` 的逐条权限判定 |
+| `src/utils/productGroups.js` | `productGroups.test.js`、`ProductListView` 的聚合数据流、`ProductGroupCard` 摘要字段、来源计数与 `all/partial/none` 口径 |
+| `ProductGroupCard` props/emits | `ProductListView` 的传参、`ProductCard` 的逐条事件转发、本文组件接口 |
+| `Product` 新增 `spuId` / `sellerId` | `buildProductGroups()`、来源展示、聚合兜底、Mock 字段核对和权限测试 |
 | `ProductCard` props/emits、商品编号与来源展示 | `ProductListView` 的 `can-manage`、本文组件接口、匿名卖家与身份未核验兜底、`permissions.test.js` |
 | `ProductForm` emits | `ProductCreateView` 成功反馈、本文组件接口 |
 | `OrderCard` props/emits | `OrderListView` 模板、本文组件接口 |
@@ -717,7 +796,8 @@ OrderListView onMounted / refreshKey 变化
 - [ ] props/emits 变更已同步到本文和调用方。
 - [ ] 页面状态仍然互斥，错误有可见提示。
 - [ ] 异步请求有失败恢复和卸载保护。
-- [ ] 所有前端管理权限判断都使用 `canManageProduct()`，没有按 `sellerName` 或标题判定归属。
-- [ ] 真实写操作已在服务端规划归属校验；没有把演示管理员描述成真实登录。
+- [ ] 所有前端管理权限判断都使用 `canManageProduct()`，没有按 `sellerName`、标题或聚合组 key 判定归属。
+- [ ] 聚合只存在于展示层，没有合并 listing、来源、库存或权限。
+- [ ] 真实写操作已在服务端规划归属校验；没有把演示角色切换描述成真实登录。
 - [ ] `npm run check`（Lint、格式、测试、构建）通过。
 - [ ] `mock/` 未被修改。

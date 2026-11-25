@@ -85,7 +85,7 @@ Invoke-RestMethod -Method Post http://127.0.0.1:3001/api/_reset
 |---|---|
 | L0 | 商品列表、独立上架页、发布反馈、加载/空态和商品上下架均已实现 |
 | L1 | 数量选择、下单、订单列表、金额转换和表单校验均已实现 |
-| L2 | 已实现支付轮询、三类防重复提交、Vitest 单测、商品详情路由、独立上架路由及优先级测试、404、动态标题、前端商品归属判断和工程化检查 |
+| L2 | 已实现支付轮询、三类防重复提交、Vitest 单测、商品详情路由、独立上架路由及优先级测试、404、动态标题、商品聚合展示与组级权限摘要、前端商品归属判断和工程化检查 |
 
 具体说明：
 
@@ -95,15 +95,18 @@ Invoke-RestMethod -Method Post http://127.0.0.1:3001/api/_reset
 - 发布表单在发请求前校验标题、价格、库存和描述长度，价格用 `yuanToFen()` 转整数分；描述最多 200 字并实时显示字数。
 - 发布成功后表单重置，独立上架页展示新商品标题、商品 ID、“查看详情”和“继续上架”；列表页不接收刷新通知，返回列表时会重新请求数据。
 - 商品卡片和详情页显示商品编号和卖家来源；`sellerName` 缺失或为空白时统一显示“匿名卖家”，没有有效 `sellerId` 时显示“身份未核验”。该字段只是展示字符串，不代表已认证身份。
-- 商品唯一身份是 `id`，同名商品各自保留为独立列表项；界面不按标题自动合并，来源相同的名称也不会被当成同一卖家。
-- 上下架按钮根据 `canManageProduct(product, session)` 显示权限提示；卖家只在商品 `sellerId` 与自身用户 ID 精确匹配时通过，管理员可管理全部商品。演示管理员明确标记为 `isDemo: true`，不是真实登录。
+- 商品唯一身份是 `id`；展示层优先按 `spuId` 聚合，缺少 `spuId` 时按清洗后的标题做展示聚合，但数据层不合并 listing、来源、库存或权限，来源名称相同也不会被当成同一卖家。
+- 聚合组头展示 listing 数、来源数、带卖家编号来源数、缺少卖家编号条数、价格区间和库存/状态摘要；多 listing 组默认折叠，单 listing 组默认展开。
+- 聚合组不是权限资源：页面显示当前角色及整体 `all / partial / none` 范围，组头显示“可管理全部 N 条 / 可管理 x/N 条 / 仅浏览”，每个 listing 的上下架按钮仍逐条调用 `canManageProduct()` 判定。
+- 顶部导航提供权限演示切换器：游客、买家、卖家、管理员可即时切换；选择卖家时显示卖家编号输入框。游客 / 买家应看到“仅浏览”，管理员应看到“全部可管理”，卖家只有在真实 `sellerId` 匹配时才会出现“部分可管理”。
+- 上下架按钮根据 `canManageProduct(product, session)` 显示权限提示；卖家只在商品 `sellerId` 与自身用户 ID 精确匹配时通过，管理员可管理全部商品。所有演示会话都通过 `createDemoSession()` 生成并标记 `isDemo: true`，不是真实登录。
 - 商品卡片和详情页可选择购买数量，请求体使用真实 `{ productId, quantity }`；`getQuantityError()` 再次校验正整数、库存异常和库存上限。
 - 已下架商品在列表和详情页都禁用购买与数量输入，仍可通过标题进入详情查看。
 - 下单期间所有购买按钮锁定；成功后跳转 `/orders`，订单页重新调用 `getOrders()`（`pageSize=50`）。
 - 支付轮询每 1 秒一次，最多 10 次；离开页面后清理定时器并使在途请求失效。
 - 商品详情支持直接访问 `/products/:id`，不存在时显示“商品不存在”；未知路径进入统一 404 页面。
 - 路由通过 `meta.title` 更新浏览器标题。
-- Vitest 已覆盖金额转换、金额展示、标题清洗、数量校验、表单校验、商品归属与角色边界、API 请求封装错误处理和路由匹配优先级，共 7 个测试文件、67 个用例。
+- Vitest 已覆盖金额转换、金额展示、标题清洗、数量校验、表单校验、商品归属与角色边界、商品聚合与组级权限摘要、API 请求封装错误处理和路由匹配优先级，共 8 个测试文件、83 个用例。
 - ESLint、Prettier 和 GitHub Actions CI 已接入，`npm run check` 串联全部检查。
 
 ## 构建与自检
@@ -134,10 +137,10 @@ npm test
 
  RUN  v5.1.1 D:/Projects/personal/lzu_internship_preliminary/frontend
 
- Test Files  7 passed (7)
-      Tests  67 passed (67)
-   Start at  23:52:45
-   Duration  496ms (import 48%, transform 31%, tests 12%, worker 9%)
+ Test Files  8 passed (8)
+      Tests  83 passed (83)
+   Start at  00:41:30
+   Duration  566ms (import 45%, transform 35%, tests 12%, worker 8%)
 ```
 
 覆盖范围：
@@ -151,7 +154,8 @@ npm test
 - 表单校验覆盖 emoji 码点计数、标题 50/51 字、价格两位小数、库存 0~999 和描述 200/201 字。
 - API 请求封装覆盖 URL 拼接、路径参数编码、JSON 请求体，以及业务 code 非 0、HTTP 非 2xx、空响应/非 JSON 和网络错误。
 - 路由覆盖 `/products/new` 优先命中独立上架页、普通商品 ID 命中详情页、多余路径段和未知路径进入 404。
-- 权限覆盖无会话、游客/买家、卖家本人/他人、数字/字符串 ID、同名不同人、空 `sellerId`、管理员和演示会话九组边界。
+- 权限覆盖无会话、游客/买家、卖家本人/他人、数字/字符串 ID、同名不同人、空 `sellerId`、管理员和演示会话等边界；另覆盖 `createDemoSession()` 的默认管理员、角色切换、卖家编号清洗、空编号失败关闭和未知角色降级。
+- 聚合覆盖 `spuId` 优先、标题回退、规范化标题合并、重复 `id`、无标题独立组、异常价格库存、来源计数和权限 `all / partial / none` 三态。
 
 ### 生产构建
 
@@ -167,17 +171,17 @@ npm run build
 
 vite v8.3.8 building client environment for production...
 transforming...
-✓ 52 modules transformed.
+✓ 55 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html                   0.47 kB │ gzip:  0.33 kB
-dist/assets/index-vEtfxQyy.css   28.06 kB │ gzip:  4.81 kB
-dist/assets/index-BB1ZHiP4.js   132.28 kB │ gzip: 48.40 kB
+dist/index.html                   0.47 kB │ gzip:  0.32 kB
+dist/assets/index-CzFEAFsc.css   32.67 kB │ gzip:  5.47 kB
+dist/assets/index-Ga-5iVzG.js   139.96 kB │ gzip: 50.87 kB
 
-✓ built in 248ms
+✓ built in 243ms
 ```
 
-> 注：上面的 `Duration` 与 `built in` 毫秒值会随机器负载波动；验收以 `7 passed (7)`、`67 passed (67)` 和 `52 modules transformed` 为准。
+> 注：上面的 `Duration` 与 `built in` 毫秒值会随机器负载波动；验收以 `8 passed (8)`、`83 passed (83)` 和 `55 modules transformed` 为准。
 
 ### 浏览器全链路验证
 
@@ -236,18 +240,18 @@ dist/assets/index-BB1ZHiP4.js   132.28 kB │ gzip: 48.40 kB
 | 项 | 状态 | 原因 |
 |---|---|---|
 | 下单后列表库存即时回写 | 未覆盖 | 下单后跳转订单页；返回列表会重新拉取，但不在旧列表实例上原地扣减 |
-| 完整 E2E 测试套件 | 未提交 | 已提交 67 个 Vitest 单测；临时 Playwright 脚本不在仓库 |
+| 完整 E2E 测试套件 | 未提交 | 已提交 83 个 Vitest 单测；临时 Playwright 脚本不在仓库 |
 | 分页与服务端搜索 | 未实现 | 当前只加载 50 条并在前端按标题过滤 |
-| 登录鉴权 | 未实现 | 当前只有明确标注的 `isDemo: true` 演示管理员会话，没有真实登录、服务端会话或接口级鉴权；游客和买家仍可直接进入上架页 |
-| 卖家身份与商品所有权 | 部分演示 | 已有 `canManageProduct()` 前端判断和单测，但 Mock 商品没有真实 `sellerId`，且直接调用接口不受前端限制；服务端归属校验仍未实现 |
-| 来源认证与同名商品治理 | 未实现 | `sellerName` 只是展示字符串，Mock 新建商品固定写为“我”且没有 `sellerId`；界面用商品编号区分同名商品，缺少卖家编号时显示“身份未核验” |
+| 登录鉴权 | 未实现 | 当前只有顶部可切换、明确标注 `isDemo: true` 的演示会话，没有真实登录、服务端会话或接口级鉴权；游客和买家仍可直接进入上架页 |
+| 卖家身份与商品所有权 | 部分演示 | 已有角色切换、`createDemoSession()`、`canManageProduct()` 和单测，但 Mock 商品没有真实 `sellerId`，所以页面无法展示卖家 `partial`；直接调用接口也不受前端限制，服务端归属校验仍未实现 |
+| 来源认证、SPU/SKU 与同名商品治理 | 未实现 | `sellerName` 只是展示字符串，Mock 商品没有真实 `spuId`/`skuId`，新建商品固定写为“我”且没有 `sellerId`；界面已实现标题回退展示聚合，但缺少卖家编号时仍显示“身份未核验”，标题聚合不能替代实体治理 |
 | 图片上传、富文本 | 未实现 | 题目未要求，且会扩大数据模型与安全边界 |
 | Mock 数据持久化 | 不适用 | 题目要求不修改 `mock/`，数据重启即恢复 |
 | 生产 History fallback | 需部署配置 | 使用 `createWebHistory()`，静态服务器需回退到 `index.html` |
 
 ## 提交前清单
 
-- [x] `npm run check` 通过，包含 ESLint、Prettier、7 个测试文件 67 个用例和生产构建。
+- [x] `npm run check` 通过，包含 ESLint、Prettier、8 个测试文件 83 个用例和生产构建。
 - [x] `.gitignore` 已忽略 `node_modules`、`dist` 和本地 `.env` 文件，并保留 `.env.example`。
 - [x] CI 配置已提交到 `.github/workflows/frontend-ci.yml`。
 - [x] 未修改 `mock/` 目录。
@@ -257,6 +261,8 @@ dist/assets/index-BB1ZHiP4.js   132.28 kB │ gzip: 48.40 kB
 - [x] 下架禁购、描述 200 字限制、全局 404、动态页面标题和独立上架页已接入。
 - [x] `/products/new` 路由优先级、卖家来源展示、匿名兜底和“身份未核验”提示已接入。
 - [x] 商品归属只按 `sellerId` 判断，权限模块单测覆盖无会话、角色、同名和空卖家编号边界。
-- [x] 演示管理员已明确标记为前端演示身份，文档没有把它写成真实登录或服务端授权。
+- [x] 聚合只影响展示，不合并 listing、来源、库存或权限；聚合组 key 不用于权限判断。
+- [x] 页面级、组级和 listing 级权限展示已接入，组级权限仅作摘要，操作前仍逐条校验。
+- [x] 顶部权限演示切换器、`createDemoSession()` 和卖家编号输入已接入；演示身份明确标记 `isDemo: true`，文档没有把它写成真实登录或服务端授权。
 - [x] 姓名、学号、分支和实际投入时间已填写，提交前由本人复核。
 - [ ] 提交前按平台记录核对 AI 模型和调用数据。

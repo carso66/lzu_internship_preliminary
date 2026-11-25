@@ -1,6 +1,6 @@
 # 校园好物市集 · 前端
 
-这是一个基于 Vue 3 + Vite 的校园商品交易前端，对接 `mock/server.mjs` 提供的模拟接口。当前已经打通商品浏览与筛选、独立页面发布商品、商品上下架、数量下单、订单列表、支付轮询和商品详情查看等链路；商品卡片和详情页会用商品编号区分同名商品，并标注卖家来源是否具有可核验的卖家编号。
+这是一个基于 Vue 3 + Vite 的校园商品交易前端，对接 `mock/server.mjs` 提供的模拟接口。当前已经打通商品浏览与筛选、独立页面发布商品、商品上下架、数量下单、订单列表、支付轮询和商品详情查看等链路；商品列表优先按 SPU、缺少 SPU 时按标题做展示聚合，组内仍以商品编号区分每条 listing，并区分展示卖家名与卖家编号。
 
 ## 项目文档
 
@@ -99,7 +99,8 @@ frontend/
 │   ├── api/index.js            # API 基础地址与统一请求封装
 │   ├── api/index.test.js       # API 请求封装单元测试
 │   ├── components/
-│   │   ├── ProductCard.vue     # 商品展示、数量输入、购买和上下架事件
+│   │   ├── ProductGroupCard.vue # 聚合组摘要、折叠列表和组级权限
+│   │   ├── ProductCard.vue     # 单条 listing 展示、数量输入、购买和上下架事件
 │   │   ├── ProductForm.vue     # 商品发布表单与字段校验
 │   │   └── OrderCard.vue       # 订单展示与支付入口
 │   ├── router/
@@ -116,14 +117,16 @@ frontend/
 │   │   ├── productForm.js      # 商品表单校验与码点计数
 │   │   ├── productForm.test.js # 表单校验单元测试
 │   │   ├── permissions.js      # 角色常量、演示会话与商品管理权限判断
-│   │   └── permissions.test.js # 商品归属与角色边界测试
+│   │   ├── permissions.test.js # 商品归属与角色边界测试
+│   │   ├── productGroups.js    # SPU/标题展示聚合与组级权限摘要
+│   │   └── productGroups.test.js # 聚合、来源计数与权限三态测试
 │   ├── views/
-│   │   ├── ProductListView.vue   # 商品浏览、搜索、上下架和购买
+│   │   ├── ProductListView.vue   # 商品浏览、搜索、聚合、上下架和购买
 │   │   ├── ProductCreateView.vue # 独立上架页与发布成功反馈
 │   │   ├── ProductDetailView.vue
 │   │   ├── OrderListView.vue
 │   │   └── NotFoundView.vue
-│   ├── App.vue
+│   ├── App.vue                   # 导航、权限演示切换、全局下单协调
 │   ├── main.js
 │   └── style.css
 ├── package-lock.json
@@ -138,6 +141,8 @@ frontend/
 ### 商品列表
 
 - 进入页面调用 `getProducts({ pageSize: 50 })`，使用返回的 `data.items` 渲染，不硬编码商品。
+- 商品列表先按 `spuId` 聚合；缺少 `spuId` 时兼容 Mock 数据，按清洗后忽略大小写和空白的标题做展示聚合。多 listing 组默认折叠，单 listing 组默认展开。
+- 组头展示 listing 数、来源数、带卖家编号来源数、缺少卖家编号条数、价格区间、库存合计和状态摘要；展开后仍逐条展示独立 listing。
 - 卡片显示标题、`formatPrice(price)`、商品编号、库存、分类、来源以及“在售 / 已下架”徽标；来源取 `sellerName`，缺失时显示“匿名卖家”，没有 `sellerId` 时显示“身份未核验”。
 - 库存为 0 的卡片整体灰化、显示“缺货”、购买按钮禁用。
 - 已下架商品保留在列表中用于查看状态和进入详情，但购买按钮与数量输入禁用，按钮文案为“已下架”。
@@ -169,19 +174,24 @@ frontend/
 
 ### 同名商品、来源与权限演示
 
-- 商品唯一身份是 `id`，标题只是搜索和展示字段。同名商品各自保留为独立列表项，不自动合并或静默去重。
+- 商品唯一身份是 `id`，标题只是搜索和展示字段。同名商品可在展示层聚合，但数据层不得合并 listing、来源、库存或权限，也不得静默去重。
+- 页面级和聚合组级均显示权限摘要，使用 `all / partial / none` 表示可管理全部、部分或仅浏览；会话或商品归属变化后由 computed 重新计算。
+- 权限摘要只改善体验，操作前仍逐条调用 `canManageProduct()`，最终由服务端重新鉴权；不能按聚合组 key 或标题授权。
 - 商品卡片和详情页都显示“商品编号”；卖家来源优先显示 `sellerName`，缺失时显示“匿名卖家”。商品没有有效 `sellerId` 时，界面额外显示“身份未核验”。
 - `sellerName` 只是展示名称，不能用于判定商品归属。`canManageProduct()` 只接受有效会话；卖家分支要求商品的 `sellerId` 与当前用户 ID 完全一致，管理员分支可管理全部商品。
-- 顶部当前显示“演示身份：管理员”。该会话在代码中通过 `isDemo: true` 明确标记，只用于本地 UI 演示，不是登录认证结果。
+- 顶部提供“演示角色”切换器，可在游客、买家、卖家和管理员之间切换；选择卖家时显示“卖家编号”输入框。切换后，页面级、组级和 listing 级权限由 computed 自动重算。
+- 游客和买家显示“仅浏览”；管理员显示“全部可管理”；卖家只在商品 `sellerId` 与会话 ID 精确匹配时显示可管理。卖家未填写编号时会话 ID 为空，按失败关闭处理。
+- 当前 Mock 商品没有 `sellerId`，因此卖家模式即使填写编号也只会显示“仅浏览”。“部分可管理”由 `permissions.test.js` / `productGroups.test.js` 的合成 `sellerId` 数据覆盖，不在页面中伪造卖家编号。
+- 所有演示会话都由 `createDemoSession()` 生成并标记 `isDemo: true`，默认角色为管理员。该切换器只影响商品管理提示和上下架入口，不是登录认证结果，也不改变服务端授权。
 - 上架页目前不提交 `sellerId`，Mock 新建商品也没有卖家编号，因此新商品会显示“身份未核验”。真实后端必须从 token / session 推导卖家身份，不能信任客户端提交的 `sellerId` 或角色。
 - 前端按钮禁用只改善体验，不是安全边界。即使前端判定通过，服务端仍必须对发布、上下架、下单和支付重新鉴权。
 
 | 角色 | 目标权限 | 当前前端状态 |
 |---|---|---|
-| 游客 | 浏览商品 | 可浏览商品；当前 UI 固定使用演示管理员，尚未实现真实游客会话 |
-| 买家 | 浏览、下单、支付、查看自己的订单 | 下单与支付界面已实现，但订单归属和真实登录未实现 |
-| 卖家 | 仅管理本人商品 | 已有 `sellerId` 精确匹配的权限函数与单测，尚无真实会话和数据字段 |
-| 管理员 | 审核、强制下架、处理举报、查看审计日志 | 演示管理员可切换任意商品状态；审核、举报和审计能力未实现 |
+| 游客 | 浏览商品 | 顶部可切到游客演示，商品页面显示“仅浏览”；尚未实现真实游客会话 |
+| 买家 | 浏览、下单、支付、查看自己的订单 | 下单与支付界面已实现，切换买家后商品管理显示“仅浏览”；订单归属和真实登录未实现 |
+| 卖家 | 仅管理本人商品 | 可填写演示卖家编号并按 `sellerId` 精确匹配；当前 Mock 商品没有 `sellerId`，实际页面通常显示“仅浏览” |
+| 管理员 | 审核、强制下架、处理举报、查看审计日志 | 默认演示管理员可切换任意商品状态；审核、举报和审计能力未实现 |
 
 ### 数量选择与下单
 
@@ -264,7 +274,7 @@ getPayment(paymentId)
 | L1-9 表单校验 | 已实现 | 标题、价格、库存和描述长度均在前端拦截 |
 | L2-10 支付轮询 | 已实现 | 1 秒轮询、10 次上限、processing 不提前成功、卸载清理 |
 | L2-11 防重复提交 | 已实现 | 发布锁、单商品上下架锁、全局下单锁 |
-| L2-12 自动化测试 | 已实现（单测） | Vitest 覆盖金额、标题清洗、数量校验、表单校验、商品归属与角色边界、API 错误处理和路由优先级，共 7 个文件 67 个用例 |
+| L2-12 自动化测试 | 已实现（单测） | Vitest 覆盖金额、标题清洗、数量校验、表单校验、商品归属与角色边界、展示聚合与组级权限摘要、API 错误处理和路由优先级，共 8 个文件 83 个用例 |
 | L2-13B 路由详情 | 已实现 | `/products/:id`、直接打开、返回、商品不存在提示、全局 404 与动态标题 |
 
 ## 自检与验证
@@ -288,9 +298,9 @@ npm test
 ```text
  RUN  v5.1.1 D:/Projects/personal/lzu_internship_preliminary/frontend
 
- Test Files  7 passed (7)
-      Tests  67 passed (67)
-   Duration  496ms (import 48%, transform 31%, tests 12%, worker 9%)
+ Test Files  8 passed (8)
+      Tests  83 passed (83)
+   Duration  566ms (import 45%, transform 35%, tests 12%, worker 8%)
 ```
 
 单独运行生产构建：
@@ -304,17 +314,17 @@ npm run build
 ```text
 vite v8.3.8 building client environment for production...
 transforming...
-✓ 52 modules transformed.
+✓ 55 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html                   0.47 kB │ gzip:  0.33 kB
-dist/assets/index-vEtfxQyy.css   28.06 kB │ gzip:  4.81 kB
-dist/assets/index-BB1ZHiP4.js   132.28 kB │ gzip: 48.40 kB
+dist/index.html                   0.47 kB │ gzip:  0.32 kB
+dist/assets/index-CzFEAFsc.css   32.67 kB │ gzip:  5.47 kB
+dist/assets/index-Ga-5iVzG.js   139.96 kB │ gzip: 50.87 kB
 
-✓ built in 248ms
+✓ built in 243ms
 ```
 
-> 注：上面的 `Duration` 与 `built in` 毫秒值会随机器负载波动；验收以 `7 passed (7)`、`67 passed (67)` 和 `52 modules transformed` 为准。
+> 注：上面的 `Duration` 与 `built in` 毫秒值会随机器负载波动；验收以 `8 passed (8)`、`83 passed (83)` 和 `55 modules transformed` 为准。
 
 此前使用临时 Playwright 脚本做过浏览器全链路验证，主要结果：
 
@@ -330,7 +340,7 @@ dist/assets/index-BB1ZHiP4.js   132.28 kB │ gzip: 48.40 kB
 - `/products/1` 可直接打开，`/products/9999` 显示“商品不存在”。
 - 单独直接请求重复支付接口时返回 HTTP 409 和“订单已支付，请勿重复支付”；该接口保护不等于页面上仍可点击已支付订单的按钮。
 
-浏览器验证脚本放在临时目录，不在仓库内；仓库保留的是 Vitest 单元测试、构建配置、CI 配置和截图。本轮的独立上架页、商品编号、来源字段、身份未核验、前端归属判断、路由优先级测试、全局 404、动态页面标题、下架禁购、描述字数限制和边界/错误单测已完成代码与自动化检查，但没有重新执行浏览器回归。
+浏览器验证脚本放在临时目录，不在仓库内；仓库保留的是 Vitest 单元测试、构建配置、CI 配置和截图。本轮的独立上架页、商品聚合列表、组级权限摘要、商品编号、来源字段、身份未核验、前端归属判断、路由优先级测试、全局 404、动态页面标题、下架禁购、描述字数限制和边界/错误单测已完成代码与自动化检查，但没有重新执行浏览器回归。
 
 ## 截图
 
@@ -350,10 +360,12 @@ dist/assets/index-BB1ZHiP4.js   132.28 kB │ gzip: 48.40 kB
 ## 已知限制
 
 1. 下单成功后跳转订单页；返回商品列表时会重新拉取商品，但不会在离开前的列表实例上原地扣减库存。
-2. 当前自动化测试是 Vitest 单元测试（工具函数、表单校验、商品归属、API 请求封装和路由匹配，共 7 个文件 67 个用例），未提交组件级或完整 Playwright E2E 测试套件。
+2. 当前自动化测试是 Vitest 单元测试（工具函数、表单校验、商品归属、展示聚合与组级权限摘要、API 请求封装和路由匹配，共 8 个文件 83 个用例），未提交组件级或完整 Playwright E2E 测试套件。
 3. 搜索只过滤当前 `pageSize: 50` 的商品，没有分页控件、服务端搜索或输入防抖。
-4. 没有真实登录鉴权、图片上传、富文本编辑和退款流程；当前只有明确标注的演示管理员会话和前端体验层权限判断。
+4. 没有真实登录鉴权、图片上传、富文本编辑和退款流程；当前只有顶部可切换的 `isDemo: true` 演示会话和前端体验层权限判断。
 5. Mock 数据保存在内存中，重启服务或调用 `_reset` 会恢复初始数据。
 6. 使用 `createWebHistory()`，生产静态服务器需要配置 SPA History fallback，否则刷新 `/orders` 或 `/products/1` 可能 404；本地 Vite 开发服务器已正确处理。
 7. 标题清洗是展示层修复，不改动题目提供的 Mock 数据；生产环境仍应在服务端做输入校验，并继续使用 `{{ }}` 文本插值。
-8. 商品卡片中的“来源”只是 `sellerName` 展示字段，不是经过认证的卖家身份；缺少 `sellerId` 时会显示“身份未核验”。前端已用 `canManageProduct()` 控制管理按钮，但没有真实登录和服务端授权，不能把演示管理员当成权限隔离，详情见约束文档。
+8. 商品卡片中的“来源”只是 `sellerName` 展示字段，不是经过认证的卖家身份；缺少 `sellerId` 时会显示“身份未核验”。前端已用 `canManageProduct()` 控制管理按钮，但没有真实登录和服务端授权，不能把演示角色切换当成权限隔离。
+9. 当前 Mock 商品没有 `spuId`，SPU 聚合路径虽已实现并有单测，但页面实际主要走标题回退。标题聚合只是展示兼容，不是后端 SPU/SKU 治理，也不能据此合并卖家、库存或权限。
+10. 当前 Mock 商品也没有 `sellerId`，所以卖家模式无法在真实页面命中“部分可管理”；`partial` 仅由测试夹具证明。接入真实会话和 `sellerId` 后才能完整演示卖家只管理本人商品的场景。

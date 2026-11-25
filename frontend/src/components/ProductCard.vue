@@ -42,11 +42,6 @@ const sellerName = computed(() => {
   return typeof value === 'string' && value.trim() ? value.trim() : '匿名卖家'
 })
 
-const hasSellerId = computed(() => {
-  const value = props.product?.sellerId
-  return value !== undefined && value !== null && String(value).trim() !== ''
-})
-
 const productId = computed(() => {
   const value = props.product?.id
   return value === undefined || value === null || String(value).trim() === ''
@@ -113,14 +108,14 @@ function handleToggleStatus() {
 <template>
   <article class="product-card" :class="{ 'product-card--sold-out': soldOut }">
     <div class="product-card__header">
-      <h2 class="product-card__title" :title="title">
+      <h3 class="product-card__title" :title="title">
         <RouterLink
           class="product-card__title-link"
           :to="{ name: 'product-detail', params: { id: product.id } }"
         >
           {{ title }}
         </RouterLink>
-      </h2>
+      </h3>
       <span class="product-card__status" :class="statusClass">
         {{ statusText }}
       </span>
@@ -142,12 +137,9 @@ function handleToggleStatus() {
         <dd>{{ category }}</dd>
       </div>
       <div class="product-card__meta-item">
-        <dt>来源</dt>
+        <dt>卖家</dt>
         <dd class="product-card__seller" :title="sellerName">
           <span class="product-card__seller-name">{{ sellerName }}</span>
-          <span v-if="!hasSellerId" class="product-card__seller-unverified">
-            身份未核验
-          </span>
         </dd>
       </div>
     </dl>
@@ -338,17 +330,6 @@ function handleToggleStatus() {
 .product-card__seller-name {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.product-card__seller-unverified {
-  flex: none;
-  padding: 1px 5px;
-  border-radius: 999px;
-  background: #f4f4f5;
-  color: #71717a;
-  font-size: 10px;
-  font-weight: 700;
   white-space: nowrap;
 }
 

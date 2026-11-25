@@ -12,22 +12,42 @@ export const ROLE_LABELS = Object.freeze({
   [USER_ROLES.admin]: '管理员',
 })
 
-/**
- * 仅用于本地演示的固定会话。
- *
- * 这不是登录认证结果，也不能替代服务端授权。真实项目必须由后端从
- * token / session 推导当前用户身份，并在每次写操作时校验商品归属。
- */
-export const DEMO_SESSION = Object.freeze({
-  id: 'demo-admin',
-  name: '演示管理员',
-  role: USER_ROLES.admin,
-  isDemo: true,
-})
-
 function hasIdentifier(value) {
   return value !== undefined && value !== null && String(value).trim() !== ''
 }
+
+const VALID_ROLES = new Set(Object.values(USER_ROLES))
+
+/**
+ * 构造仅用于本地权限演示的会话。
+ *
+ * 卖家会话必须携带 sellerId 才能命中商品归属；未填写编号时保持空 ID，
+ * 从而由 canManageProduct() 按失败关闭处理。未知角色降级为游客。
+ * 该会话不是登录认证结果，也不能替代服务端授权。
+ *
+ * @param {string} role 演示角色
+ * @param {string | number | null | undefined} sellerId 卖家用户编号
+ * @returns {Readonly<{id: string, name: string, role: string, isDemo: true}>}
+ */
+export function createDemoSession(role = USER_ROLES.admin, sellerId = '') {
+  const normalizedRole = VALID_ROLES.has(role) ? role : USER_ROLES.visitor
+  const normalizedSellerId = hasIdentifier(sellerId)
+    ? String(sellerId).trim()
+    : ''
+  const isSeller = normalizedRole === USER_ROLES.seller
+
+  return Object.freeze({
+    id: isSeller ? normalizedSellerId : `demo-${normalizedRole}`,
+    name: `演示${ROLE_LABELS[normalizedRole]}`,
+    role: normalizedRole,
+    isDemo: true,
+  })
+}
+
+/**
+ * 默认进入管理员演示，方便首次打开页面时查看全部管理状态。
+ */
+export const DEMO_SESSION = createDemoSession(USER_ROLES.admin)
 
 /**
  * 判断当前会话是否有权管理商品。

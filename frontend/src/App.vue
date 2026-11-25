@@ -2,7 +2,11 @@
 import { computed, onUnmounted, ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { createOrder } from './api/index.js'
-import { DEMO_SESSION, ROLE_LABELS } from './utils/permissions.js'
+import {
+  createDemoSession,
+  ROLE_LABELS,
+  USER_ROLES,
+} from './utils/permissions.js'
 import { getQuantityError } from './utils/quantity.js'
 
 const route = useRoute()
@@ -11,8 +15,29 @@ const creatingOrder = ref(false)
 const orderingProductId = ref(null)
 const ordersRefreshKey = ref(0)
 const appNotice = ref('')
-const demoSession = DEMO_SESSION
-const demoRoleLabel = ROLE_LABELS[demoSession.role] ?? '未知角色'
+const demoRole = ref(USER_ROLES.admin)
+const demoSellerId = ref('')
+const demoSession = computed(() =>
+  createDemoSession(demoRole.value, demoSellerId.value),
+)
+const demoSessionLabel = computed(() => {
+  const roleLabel = ROLE_LABELS[demoSession.value.role] ?? '未知角色'
+
+  if (demoSession.value.role !== USER_ROLES.seller) return roleLabel
+
+  return demoSession.value.id
+    ? `${roleLabel} · 编号 ${demoSession.value.id}`
+    : `${roleLabel} / 未填写编号`
+})
+const demoHint = computed(() => {
+  if (demoSession.value.role !== USER_ROLES.seller) return ''
+
+  if (!demoSession.value.id) {
+    return '填写卖家编号后，才能匹配到该卖家名下的商品。'
+  }
+
+  return '当前商品暂未关联卖家编号，因此这个卖家身份只能浏览。'
+})
 let noticeTimer = null
 
 const isProductsActive = computed(
@@ -22,7 +47,7 @@ const isCreateActive = computed(() => route.name === 'product-create')
 const isOrdersActive = computed(() => route.name === 'orders')
 const productSession = computed(() =>
   route.name === 'products' || route.name === 'product-detail'
-    ? demoSession
+    ? demoSession.value
     : null,
 )
 
@@ -89,12 +114,44 @@ onUnmounted(() => {
     <nav class="app-nav" aria-label="主导航">
       <div class="app-nav__identity">
         <span class="app-nav__brand">校园好物市集</span>
-        <span
-          class="app-nav__session"
-          title="前端演示身份，不代表真实登录或服务端授权"
+        <div class="app-nav__demo" aria-label="身份预览控制">
+          <label class="app-nav__demo-label" for="demo-role"> 当前身份 </label>
+          <select id="demo-role" v-model="demoRole">
+            <option :value="USER_ROLES.visitor">游客</option>
+            <option :value="USER_ROLES.buyer">买家</option>
+            <option :value="USER_ROLES.seller">卖家</option>
+            <option :value="USER_ROLES.admin">管理员</option>
+          </select>
+          <template v-if="demoRole === USER_ROLES.seller">
+            <label class="app-nav__demo-label" for="demo-seller-id">
+              卖家编号
+            </label>
+            <input
+              id="demo-seller-id"
+              v-model="demoSellerId"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="例如 42"
+              aria-describedby="demo-seller-hint"
+            />
+          </template>
+          <span
+            class="app-nav__session"
+            title="仅用于页面预览，不会改变真实账号"
+          >
+            当前身份：{{ demoSessionLabel }}
+          </span>
+        </div>
+        <p
+          v-if="demoHint"
+          id="demo-seller-hint"
+          class="app-nav__demo-note"
+          role="note"
         >
-          演示身份：{{ demoRoleLabel }}
-        </span>
+          {{ demoHint }}
+        </p>
       </div>
       <div class="app-nav__links">
         <RouterLink
@@ -161,8 +218,10 @@ onUnmounted(() => {
 .app-nav__identity {
   display: flex;
   min-width: 0;
+  flex: 1;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px 10px;
 }
 
 .app-nav__brand {
@@ -170,6 +229,57 @@ onUnmounted(() => {
   font-size: 16px;
   font-weight: 800;
   letter-spacing: -0.01em;
+}
+
+.app-nav__demo {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.app-nav__demo-label {
+  color: #71717a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.app-nav__demo select,
+.app-nav__demo input {
+  box-sizing: border-box;
+  padding: 5px 7px;
+  border: 1px solid #d4d4d8;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #18181b;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.app-nav__demo select {
+  max-width: 96px;
+}
+
+.app-nav__demo input {
+  width: 82px;
+}
+
+.app-nav__demo select:focus-visible,
+.app-nav__demo input:focus-visible {
+  border-color: #52525b;
+  box-shadow: 0 0 0 3px rgb(82 82 91 / 12%);
+  outline: none;
+}
+
+.app-nav__demo-note {
+  flex-basis: 100%;
+  margin: 0;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.5;
 }
 
 .app-nav__session {
@@ -236,6 +346,16 @@ onUnmounted(() => {
   transform: translateY(-6px);
 }
 
+@media (max-width: 900px) {
+  .app-nav {
+    flex-wrap: wrap;
+  }
+
+  .app-nav__links {
+    width: 100%;
+  }
+}
+
 @media (max-width: 560px) {
   .app-nav {
     align-items: flex-start;
@@ -243,11 +363,15 @@ onUnmounted(() => {
     gap: 8px;
     padding: 12px 14px;
   }
-}
-@media (max-width: 560px) {
+
   .app-nav__identity,
   .app-nav__links {
+    width: 100%;
     flex-wrap: wrap;
+  }
+
+  .app-nav__demo {
+    width: 100%;
   }
 }
 </style>
