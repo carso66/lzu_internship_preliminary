@@ -1,0 +1,122 @@
+[
+  {
+    "time": "2026-11-25 16:19:02",
+    "model": "glm-5.3",
+    "prompt_tokens": 1028,
+    "completion_tokens": 15001,
+    "quota": 23792,
+    "request_id": "XY20261125081559627919140150e9dd67KXvqxKP"
+  },
+  {
+    "time": "2026-11-25 16:15:51",
+    "model": "deepseek-v4-pro",
+    "prompt_tokens": 211,
+    "completion_tokens": 5580,
+    "quota": 8413,
+    "request_id": "XY20261125081401941715602150e9dd66oSpz2l8"
+  },
+  {
+    "time": "2026-11-25 16:14:00",
+    "model": "kimi-k3.1-pro",
+    "prompt_tokens": 1997,
+    "completion_tokens": 2680,
+    "quota": 11567,
+    "request_id": "XY20261125081341467811179150e9dd6ppYMcK1d"
+  },
+  {
+    "time": "2026-11-25 16:13:40",
+    "model": "glm-5.3",
+    "prompt_tokens": 1043,
+    "completion_tokens": 6000,
+    "quota": 9456,
+    "request_id": "XY20261125081226929488993150e9dd6DZsJZXfD"
+  },
+  {
+    "time": "2026-11-25 16:12:25",
+    "model": "deepseek-v4-pro",
+    "prompt_tokens": 813,
+    "completion_tokens": 6483,
+    "quota": 10056,
+    "request_id": "XY20261125081052066362996150e9dd6bNSFImbs"
+  },
+  {
+    "time": "2026-11-25 16:10:50",
+    "model": "qwen3.8-flash",
+    "prompt_tokens": 1643,
+    "completion_tokens": 16141,
+    "quota": 2494,
+    "request_id": "XY20261125080657692793994150e9dd6GsgTKAVv"
+  },
+  {
+    "time": "2026-11-25 16:06:26",
+    "model": "deepseek-v4-pro",
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "quota": 0,
+    "request_id": "XY20261125080326817163797150e9dd69Dp3KpLk"
+  },
+  {
+    "time": "2026-11-25 16:03:25",
+    "model": "kimi-k3.1-pro",
+    "prompt_tokens": 2161,
+    "completion_tokens": 1400,
+    "quota": 6850,
+    "request_id": "XY20261125080250172781285150e9dd6eNVIH11F"
+  },
+  {
+    "time": "2026-11-25 16:02:49",
+    "model": "glm-5.3",
+    "prompt_tokens": 1043,
+    "completion_tokens": 1600,
+    "quota": 2952,
+    "request_id": "XY20261125080226177527534150e9dd64HShAoGj"
+  },
+  {
+    "time": "2026-11-25 16:02:25",
+    "model": "deepseek-v4-pro",
+    "prompt_tokens": 813,
+    "completion_tokens": 6425,
+    "quota": 9969,
+    "request_id": "XY20261125080041490060815150e9dd6pKIx0YRP"
+  },
+  {
+    "time": "2026-11-25 16:00:40",
+    "model": "qwen3.8-flash",
+    "prompt_tokens": 1643,
+    "completion_tokens": 11667,
+    "quota": 1823,
+    "request_id": "XY20261125075802978557990150e9dd6T8Mms6ih"
+  },
+  {
+    "time": "2026-11-25 15:07:45",
+    "model": "",
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "quota": 0,
+    "request_id": "XY20261125070745028584540150e9dd6t34V9FDs"
+  },
+  {
+    "time": "2026-11-25 15:07:33",
+    "model": "",
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "quota": 0,
+    "request_id": "XY20261125070733102369597150e9dd6gNbJXdCf"
+  },
+  {
+    "time": "2026-11-25 14:53:50",
+    "model": "",
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "quota": 0,
+    "request_id": "XY20261125065350130722239150e9dd6jJWlnUSu"
+  },
+  {
+    "time": "2026-11-25 14:34:44",
+    "model": "",
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "quota": 0,
+    "request_id": "XY20261125063444766803882150e9dd6HBlM9egO"
+  }
+]
