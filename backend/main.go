@@ -19,6 +19,10 @@ func (s *server) routes() http.Handler {
 	mux.HandleFunc("POST /api/products", handle(s.createProduct))
 	mux.HandleFunc("GET /api/products/{id}", handle(s.getProduct))
 	mux.HandleFunc("PATCH /api/products/{id}/status", handle(s.changeStatus))
+	mux.HandleFunc("POST /api/orders", handle(s.createOrder))
+	mux.HandleFunc("GET /api/orders", handle(s.listOrders))
+	mux.HandleFunc("GET /api/orders/{orderNo}", handle(s.getOrder))
+	mux.HandleFunc("POST /api/payments", handle(s.pay))
 	mux.HandleFunc("/", handle(func(w http.ResponseWriter, r *http.Request) error { return problem(404, 40401, "接口不存在") }))
 	return mux
 }
