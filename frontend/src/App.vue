@@ -28,6 +28,8 @@ import { api } from './api/client'
 import ProductList from './components/ProductList.vue'
 // 引入发布商品表单组件（不 import + 不写标签，组件就永远不会渲染）
 import PublishForm from './components/PublishForm.vue'
+// 引入订单列表组件
+import OrderList from './components/OrderList.vue'
 
 // 引入全站唯一的分类数组，下拉框的选项从它生成
 import { CATEGORIES } from './constants'
@@ -48,6 +50,11 @@ const category = ref('')
 // App 自己永远不销毁，所以提示放它身上才留得住。
 const notice = ref('')
 
+// 订单数组 + 它自己的一套加载状态
+// 分开是有意的：订单区转圈不应该把商品区也变空
+const orders = ref([])
+const ordersLoading = ref(true)
+
 // 搜索：重新请求 API，把 keyword 和 category 传给服务器
 async function search() {
   loading.value = true
@@ -65,12 +72,26 @@ async function search() {
   }
 }
 
+// 拉订单列表：不带筛选，服务器按 id 倒序返回，最新的一单在最上面
+async function loadOrders() {
+  ordersLoading.value = true
+  try {
+    const data = await api.listOrders({ pageSize: 20 })
+    orders.value = data.items
+  } catch (e) {
+    console.error(e.message)
+  } finally {
+    ordersLoading.value = false
+  }
+}
+
 // 卡片里的 BuyPanel 下单成功 → ProductList 转告 → 落到这里
 // payload 是 { productId, orderNo }，orderNo 是服务器生成的，不是我拼的
 async function onOrdered(payload) {
   notice.value = `下单成功，订单号 ${payload.orderNo}`
-  // 重拉列表，库存数字才会跟着变
-  await search()
+  // 两边都要重拉：商品列表看库存变化，订单列表看新单出现
+  // Promise.all 让它们并发跑，不用排队等两个 600ms
+  await Promise.all([search(), loadOrders()])
 }
 
 // 清空筛选：把关键词和分类清空，重新加载全部商品
@@ -80,10 +101,11 @@ function clearQuery() {
   search()
 }
 
-// 页面加载完成后，自动搜一次
-// 不传关键词、不传分类 = 拿全部商品，所以效果和之前一样
+// 页面加载完成后，商品和订单各拉各的
+// 不 await：两个请求并发跑，谁先回来谁先渲染，互不阻塞
 onMounted(() => {
   search()
+  loadOrders()
 })
 </script>
 
@@ -131,6 +153,10 @@ onMounted(() => {
       @clear-query="clearQuery"
       @ordered="onOrdered"
     />
+
+    <h2 class="orders-title">我的订单</h2>
+    <!-- 订单列表：和商品列表各有一套 loading，互不影响 -->
+    <OrderList :orders="orders" :loading="ordersLoading" />
   </div>
 </template>
 
@@ -182,5 +208,13 @@ onMounted(() => {
   background: #e6f7e6;
   color: #2d7a2d;
   font-size: 13px;
+}
+
+/* 「我的订单」小标题：和上方商品区拉开距离，避免看着像一个整体 */
+.orders-title {
+  margin: 28px 0 8px;
+  font-size: 18px;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 16px;
 }
 </style>
