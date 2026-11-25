@@ -6,6 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 健康检查接口，用于确认应用和数据库连接是否可用。
+ */
 @RestController
 public class HealthController {
 

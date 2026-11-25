@@ -25,6 +25,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * 商品接口：负责商品发布、分页查询、详情查询和上下架。
+ */
 @Validated
 @RestController
 @RequestMapping("/api/products")

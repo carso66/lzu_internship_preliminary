@@ -1,3 +1,4 @@
+-- 商品当前信息：price 使用整数分，stock 表示当前可售数量。
 CREATE TABLE products (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title VARCHAR(120) NOT NULL,
@@ -13,6 +14,7 @@ CREATE TABLE products (
     CONSTRAINT ck_products_status CHECK (status IN ('on', 'off'))
 );
 
+-- 订单保存成交时的商品标题、单价和总额快照，后续商品改价不影响历史订单。
 CREATE TABLE orders (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     order_no VARCHAR(40) NOT NULL,
@@ -39,6 +41,7 @@ CREATE TABLE orders (
     )
 );
 
+-- 支付记录通过 order_id 外键关联订单；唯一约束保证一笔订单最多一笔支付。
 CREATE TABLE payments (
     payment_id VARCHAR(40) PRIMARY KEY,
     order_id BIGINT NOT NULL,

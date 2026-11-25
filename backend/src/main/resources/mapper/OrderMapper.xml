@@ -45,6 +45,7 @@
         WHERE order_no = #{orderNo}
     </select>
 
+    <!-- 状态条件保证同一订单只能完成一次 created -> paid 迁移。 -->
     <update id="markPaidIfCreated">
         UPDATE orders
         SET status = 'paid',

@@ -4,6 +4,9 @@ import com.example.marketplace.domain.Order;
 
 import java.time.OffsetDateTime;
 
+/**
+ * 订单响应；金额字段使用整数分，商品标题和单价是下单时的成交快照。
+ */
 public record OrderResponse(
         Long id,
         String orderNo,

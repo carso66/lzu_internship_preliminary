@@ -21,6 +21,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * 验证未知异常返回统一 500 响应，且不泄露异常详情。
+ */
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:unexpected-exception-test;DB_CLOSE_DELAY=-1")
 @AutoConfigureMockMvc
 class UnexpectedExceptionApiTest {

@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 
+/**
+ * 支付业务服务：以订单状态条件更新和支付唯一约束防止重复支付。
+ */
 @Service
 public class PaymentService {
 
@@ -31,6 +34,9 @@ public class PaymentService {
         this.paymentNumberGenerator = paymentNumberGenerator;
     }
 
+    /**
+     * 创建模拟支付。订单状态迁移和支付记录写入在同一事务中完成。
+     */
     @Transactional
     public Payment create(CreatePaymentRequest request) {
         Order order = orderMapper.findByOrderNo(request.orderNo());
@@ -39,6 +45,7 @@ public class PaymentService {
         }
 
         OffsetDateTime paidAt = OffsetDateTime.now();
+        // 只有 created 订单能迁移到 paid，影响行数是并发幂等判断依据。
         int updatedRows = orderMapper.markPaidIfCreated(order.getId(), paidAt);
         if (updatedRows != 1) {
             throw new OrderAlreadyPaidException(request.orderNo());
@@ -51,6 +58,7 @@ public class PaymentService {
         payment.setMethod(request.method());
         payment.setAmount(order.getTotalAmount());
         payment.setPaidAt(paidAt);
+        // 唯一约束兜底并发重复支付；若冲突来自支付号碰撞则继续抛出原异常。
         try {
             paymentMapper.insert(payment);
         } catch (DuplicateKeyException exception) {

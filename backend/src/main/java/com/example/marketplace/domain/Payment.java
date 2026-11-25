@@ -2,6 +2,9 @@ package com.example.marketplace.domain;
 
 import java.time.OffsetDateTime;
 
+/**
+ * 支付数据；amount 使用整数分，一笔订单最多对应一笔支付。
+ */
 public class Payment {
 
     private String paymentId;

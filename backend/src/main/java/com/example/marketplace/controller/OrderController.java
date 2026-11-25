@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * 订单接口：负责创建订单、查询订单详情和按买家手机号分页查询。
+ */
 @Validated
 @RestController
 @RequestMapping("/api/orders")

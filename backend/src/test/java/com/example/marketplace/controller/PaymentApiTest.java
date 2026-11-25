@@ -24,6 +24,9 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * 覆盖模拟支付主流程、订单状态更新和重复支付场景。
+ */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.datasource.url=jdbc:h2:mem:payment-idempotency-test;DB_CLOSE_DELAY=-1"

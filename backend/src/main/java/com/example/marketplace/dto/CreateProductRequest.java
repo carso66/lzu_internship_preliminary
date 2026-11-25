@@ -6,6 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
+/**
+ * 发布商品请求；price 字段使用整数分。
+ */
 public record CreateProductRequest(
         @NotBlank(message = "title must not be blank")
         @Size(max = 120, message = "title must be at most 120 characters")

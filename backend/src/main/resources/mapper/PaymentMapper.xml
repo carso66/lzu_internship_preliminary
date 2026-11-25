@@ -32,6 +32,7 @@
         WHERE p.payment_id = #{paymentId}
     </select>
 
+    <!-- 支付插入触发唯一键冲突后，用该查询区分重复支付和支付号碰撞。 -->
     <select id="existsByOrderId" resultType="boolean">
         SELECT EXISTS(
             SELECT 1

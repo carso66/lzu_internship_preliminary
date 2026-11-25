@@ -24,6 +24,9 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * 验证多个并发下单请求竞争同一份库存时，只有满足库存条件的请求能创建订单。
+ */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.datasource.url=jdbc:h2:mem:order-concurrency-test;DB_CLOSE_DELAY=-1"

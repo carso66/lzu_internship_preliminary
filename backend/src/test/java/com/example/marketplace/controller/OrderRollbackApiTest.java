@@ -20,6 +20,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+/**
+ * 固定订单号制造唯一键冲突，验证写订单失败后库存扣减会回滚。
+ */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.datasource.url=jdbc:h2:mem:order-rollback-test;DB_CLOSE_DELAY=-1"

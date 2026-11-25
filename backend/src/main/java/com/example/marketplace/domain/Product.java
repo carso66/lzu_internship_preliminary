@@ -2,6 +2,9 @@ package com.example.marketplace.domain;
 
 import java.time.OffsetDateTime;
 
+/**
+ * 商品当前数据；price 使用整数分，status 为 on 或 off。
+ */
 public class Product {
 
     private Long id;

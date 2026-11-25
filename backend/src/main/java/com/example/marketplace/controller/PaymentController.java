@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 支付接口：负责创建模拟支付和按支付号查询支付详情。
+ */
 @Validated
 @RestController
 @RequestMapping("/api/payments")

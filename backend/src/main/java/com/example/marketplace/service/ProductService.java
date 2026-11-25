@@ -9,6 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * 商品业务服务，负责商品创建、状态变更和分页查询。
+ */
 @Service
 public class ProductService {
 
@@ -44,6 +47,9 @@ public class ProductService {
         return product;
     }
 
+    /**
+     * 更新商品上下架状态；影响 0 行表示商品不存在。
+     */
     @Transactional
     public ProductStatus updateStatus(long id, String status) {
         int updatedRows = productMapper.updateStatus(id, status);
@@ -56,6 +62,7 @@ public class ProductService {
     @Transactional(readOnly = true)
     public ProductPage list(String keyword, String status, String category, int page, int pageSize) {
         long total = productMapper.count(keyword, status, category);
+        // 空结果直接返回，避免再执行一次无意义的分页查询。
         if (total == 0) {
             return new ProductPage(0, List.of());
         }

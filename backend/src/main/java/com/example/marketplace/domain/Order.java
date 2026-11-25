@@ -2,6 +2,9 @@ package com.example.marketplace.domain;
 
 import java.time.OffsetDateTime;
 
+/**
+ * 订单数据；金额使用整数分，商品标题和单价保存成交时的快照。
+ */
 public class Order {
 
     private Long id;

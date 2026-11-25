@@ -15,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * 订单业务服务：在同一事务内完成条件扣库存、订单快照保存和金额计算。
+ */
 @Service
 public class OrderService {
 
@@ -32,13 +35,18 @@ public class OrderService {
         this.orderNumberGenerator = orderNumberGenerator;
     }
 
+    /**
+     * 创建订单。库存扣减和订单写入必须同时成功，否则事务回滚。
+     */
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Order create(CreateOrderRequest request) {
+        // 条件更新同时检查上架状态和库存；影响 0 行时再查询以区分失败原因。
         int updatedRows = productMapper.decreaseStockIfAvailable(request.productId(), request.quantity());
         if (updatedRows == 0) {
             throwStockError(request.productId(), request.quantity());
         }
 
+        // 保存商品标题和单价快照，避免后续商品改价影响历史订单。
         Product product = productMapper.findById(request.productId());
         Order order = new Order();
         order.setOrderNo(orderNumberGenerator.generate());
@@ -46,6 +54,7 @@ public class OrderService {
         order.setProductTitle(product.getTitle());
         order.setQuantity(request.quantity());
         order.setUnitPrice(product.getPrice());
+        // 金额乘法发生溢出时直接失败，避免生成错误的订单总额。
         order.setTotalAmount(Math.multiplyExact(product.getPrice(), request.quantity()));
         order.setBuyerName(request.buyerName());
         order.setBuyerPhone(request.buyerPhone());
@@ -77,6 +86,9 @@ public class OrderService {
         return new OrderPage(total, items);
     }
 
+    /**
+     * 扣库存失败后再查商品，将 0 行更新细分为不存在、下架和库存不足。
+     */
     private void throwStockError(long productId, int quantity) {
         Product product = productMapper.findById(productId);
         if (product == null) {

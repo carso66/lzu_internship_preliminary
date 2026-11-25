@@ -21,6 +21,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.util.stream.Collectors;
 
+/**
+ * 将参数错误、业务异常和未知异常统一转换为固定 JSON 结构和 HTTP 状态码。
+ */
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
@@ -105,6 +108,9 @@ public class ApiExceptionHandler {
                 .body(new ApiResponse<>(40001, message, null));
     }
 
+    /**
+     * 沿异常原因链查找 Jackson 报出的第一个字段名，用于生成更易定位的 400 提示。
+     */
     private String findJsonField(Throwable throwable) {
         Throwable current = throwable;
         while (current != null) {
