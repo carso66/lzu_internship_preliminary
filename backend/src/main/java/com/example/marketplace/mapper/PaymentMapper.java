@@ -8,4 +8,6 @@ public interface PaymentMapper {
     int insert(Payment payment);
 
     Payment findByPaymentId(@Param("paymentId") String paymentId);
+
+    boolean existsByOrderId(@Param("orderId") long orderId);
 }

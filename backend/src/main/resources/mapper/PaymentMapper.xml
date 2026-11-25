@@ -31,4 +31,12 @@
         JOIN orders o ON o.id = p.order_id
         WHERE p.payment_id = #{paymentId}
     </select>
+
+    <select id="existsByOrderId" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM payments
+            WHERE order_id = #{orderId}
+        )
+    </select>
 </mapper>

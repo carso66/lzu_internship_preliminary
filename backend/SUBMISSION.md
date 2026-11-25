@@ -32,7 +32,7 @@ mvn spring-boot:run
 
 ## 测试 / 自检
 
-在 `backend/` 下执行 `mvn test` 运行接口测试，或执行 `mvn clean package` 同时验证测试与打包。当前完整测试套件共 75 条，覆盖商品发布与参数校验、列表筛选分页、详情查询、上下架状态更新、下单金额计算、订单详情与列表、商品不存在、库存不足、商品下架、并发不超卖、下单事务回滚，以及支付成功、重复支付、并发重复支付、唯一键兜底和支付记录查询。
+在 `backend/` 下执行 `mvn test` 运行接口测试，或执行 `mvn clean package` 同时验证测试与打包。当前完整测试套件共 76 条（参数化测试按实际展开后的执行次数统计），覆盖商品发布与参数校验、列表筛选分页、详情查询、上下架状态更新、下单金额计算、订单详情与列表、商品不存在、库存不足、商品下架、并发不超卖、下单事务回滚，以及支付成功、重复支付、并发重复支付、唯一键兜底和支付记录查询。
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Java\jdk-19'
@@ -127,15 +127,15 @@ WHERE id = #{id}
 
 只有成功把订单从 `created` 改为 `paid` 的请求才继续插入支付记录；其他并发请求更新 0 行，返回 409 + `40903`。
 
-2. `payments.order_id` 有 `UNIQUE` 约束。若出现订单仍为 `created`、支付记录却已存在的数据不一致，插入会触发唯一键冲突，并被转换为同一个 409 + `40903`。条件更新和支付插入处于同一事务，冲突时订单状态与 `paid_at` 一并回滚。
+2. `payments.order_id` 有 `UNIQUE` 约束。若出现订单仍为 `created`、支付记录却已存在的数据不一致，插入会触发唯一键冲突，并被转换为同一个 409 + `40903`。条件更新和支付插入处于同一事务，冲突时订单状态与 `paid_at` 一并回滚。支付单号 `payment_id` 的主键冲突不属于重复支付：仅当冲突后确认同一订单已有支付记录时才返回 409 + `40903`，否则保留为 500 + `50000` 并回滚订单状态。
 
-自动化测试文件：`src/test/java/com/example/marketplace/controller/PaymentApiTest.java`，共 8 条，覆盖成功支付、订单状态与 `paid_at`、重复支付、按支付单号查询、支付记录不存在、唯一键冲突回滚、订单不存在、非法支付方式，以及 10 个线程同时支付同一订单时恰好 1 个成功、9 个 409、最终只有 1 条支付记录。
+自动化测试：`PaymentApiTest` 共 8 条，覆盖成功支付、订单状态与 `paid_at`、重复支付、按支付单号查询、支付记录不存在、唯一键冲突回滚、订单不存在、非法支付方式，以及 10 个线程同时支付同一订单时恰好 1 个成功、9 个 409、最终只有 1 条支付记录；`PaymentIdCollisionApiTest` 共 1 条，验证支付单号主键碰撞不会被误报为重复支付，且订单状态与支付记录写入均回滚。
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Java\jdk-19'
 $env:Path="$env:JAVA_HOME\bin;$env:Path"
 cd backend
-& mvn '-Dmaven.repo.local=C:\Users\18537\.m2\repository' '-Dtest=PaymentApiTest' test
+& mvn '-Dmaven.repo.local=C:\Users\18537\.m2\repository' '-Dtest=PaymentApiTest,PaymentIdCollisionApiTest' test
 ```
 ## 并发不超卖验证（L2-10）
 

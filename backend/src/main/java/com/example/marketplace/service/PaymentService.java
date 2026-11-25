@@ -54,7 +54,10 @@ public class PaymentService {
         try {
             paymentMapper.insert(payment);
         } catch (DuplicateKeyException exception) {
-            throw new OrderAlreadyPaidException(request.orderNo());
+            if (paymentMapper.existsByOrderId(order.getId())) {
+                throw new OrderAlreadyPaidException(request.orderNo());
+            }
+            throw exception;
         }
         return paymentMapper.findByPaymentId(payment.getPaymentId());
     }
