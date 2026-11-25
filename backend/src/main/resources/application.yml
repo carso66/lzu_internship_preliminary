@@ -1,0 +1,13 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: marketplace
+
+  # 本阶段只用 H2 内存库验证工程能启动，正式存储方式留到数据库设计阶段再定
+  datasource:
+    url: jdbc:h2:mem:marketplace;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
