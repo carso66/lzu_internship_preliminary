@@ -109,7 +109,7 @@ POST /api/_reset                        -> 恢复初始数据（24 商品 / 2 �
 ## 自检清单
 
 - [x] 删掉 `node_modules` 后，`npm install && npm start` 能重新跑起来
-- [x] 没提交 `node_modules` / `dist` / `.env`（`.gitignore` 已排除前两者）
-- [x] `DESIGN.md` 已填写完整（8 节逐条作答）
-- [x] `AI_USAGE.md` 已填写完整（6 节，含场景 4「让 AI 检查」与第 4 节「被 AI 带偏」两个必答项）
+- [x] 没提交 `node_modules` / `dist` / `.env`
+- [x] `DESIGN.md` 已填写完整
+- [x] `AI_USAGE.md` 已填写完整
 - [x] 截图放进 `screenshots/`：`01-products-list.png`（商品列表）、`02-publish-form.png`（发布表单）、`03-orders-list.png`（订单列表），均为本机浏览器实际运行页面
