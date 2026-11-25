@@ -32,7 +32,7 @@ mvn spring-boot:run
 
 ## 测试 / 自检
 
-在 `backend/` 下执行 `mvn test` 运行接口测试，或执行 `mvn clean package` 同时验证测试与打包。当前完整测试套件共 55 条，覆盖商品发布与参数校验、列表筛选分页、详情查询、上下架状态更新、下单金额计算、下单参数校验、商品不存在、库存不足、商品下架、并发不超卖和下单事务回滚。
+在 `backend/` 下执行 `mvn test` 运行接口测试，或执行 `mvn clean package` 同时验证测试与打包。当前完整测试套件共 75 条，覆盖商品发布与参数校验、列表筛选分页、详情查询、上下架状态更新、下单金额计算、订单详情与列表、商品不存在、库存不足、商品下架、并发不超卖、下单事务回滚，以及支付成功、重复支付、并发重复支付、唯一键兜底和支付记录查询。
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Java\jdk-19'
@@ -91,6 +91,52 @@ WHERE id = #{id}
 
 该接口没有实现服务端幂等，也没有引入 Redis。前端可以通过按钮防抖、请求进行中禁用按钮等方式降低重复提交概率，但不能替代服务端幂等保证；在“不改请求格式、不增加幂等键”的约束下，本实现明确接受这一限制。
 
+## POST /api/payments 实现（L2-9）
+
+请求体：
+
+```json
+{
+  "orderNo": "ORD202611250001",
+  "method": "alipay"
+}
+```
+
+`method` 只接受 `alipay` 或 `wechat`。支付成功返回 HTTP 200，订单状态改为 `paid`，写入订单和支付记录共用的 `paid_at`，并返回 `status = "paid"`。支付单号格式为 `PAY + yyyyMMdd + 12 位大写十六进制随机串`。
+
+另外提供 `GET /api/payments/{paymentId}` 查询成功支付记录，不存在时返回 404 + `40401`。
+
+| 场景 | HTTP | code |
+|---|---|---|
+| 参数缺失、`method` 非法 | 400 | `40001` |
+| 订单不存在 | 404 | `40401` |
+| 支付记录不存在 | 404 | `40401` |
+| 订单已支付、重复支付 | 409 | `40903` |
+
+幂等由两层数据库约束保证：
+
+1. `PaymentService.create` 在单个事务内先执行条件更新：
+
+```sql
+UPDATE orders
+SET status = 'paid',
+    paid_at = #{paidAt}
+WHERE id = #{id}
+  AND status = 'created'
+```
+
+只有成功把订单从 `created` 改为 `paid` 的请求才继续插入支付记录；其他并发请求更新 0 行，返回 409 + `40903`。
+
+2. `payments.order_id` 有 `UNIQUE` 约束。若出现订单仍为 `created`、支付记录却已存在的数据不一致，插入会触发唯一键冲突，并被转换为同一个 409 + `40903`。条件更新和支付插入处于同一事务，冲突时订单状态与 `paid_at` 一并回滚。
+
+自动化测试文件：`src/test/java/com/example/marketplace/controller/PaymentApiTest.java`，共 8 条，覆盖成功支付、订单状态与 `paid_at`、重复支付、按支付单号查询、支付记录不存在、唯一键冲突回滚、订单不存在、非法支付方式，以及 10 个线程同时支付同一订单时恰好 1 个成功、9 个 409、最终只有 1 条支付记录。
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-19'
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
+cd backend
+& mvn '-Dmaven.repo.local=C:\Users\18537\.m2\repository' '-Dtest=PaymentApiTest' test
+```
 ## 并发不超卖验证（L2-10）
 
 自动化测试文件：`src/test/java/com/example/marketplace/controller/OrderConcurrencyApiTest.java`。
@@ -126,8 +172,8 @@ cd backend
 | 层级 | 计划范围 | 完成情况 |
 |---|---|---|
 | L0 | 建表和商品接口 | L0-1 至 L0-5 已完成（发布、列表、详情、上下架） |
-| L1 | 下单扣库存和订单查询 | L1-6 已完成；L1-7 订单查询待开发 |
-| L2 | 支付链路、并发、鉴权 | L2-10 并发不超卖已完成；其余挑战待开发 |
+| L1 | 下单扣库存和订单查询 | L1-6 下单、L1-7 订单详情、L1-8 订单列表均已完成 |
+| L2 | 支付链路、并发、鉴权 | L2-9 支付幂等与 L2-10 并发不超卖已完成；其余挑战待开发 |
 
 ## 自检清单
 

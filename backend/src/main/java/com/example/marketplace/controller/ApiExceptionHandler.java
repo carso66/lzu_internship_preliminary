@@ -1,7 +1,9 @@
 package com.example.marketplace.controller;
 
 import com.example.marketplace.exception.InsufficientStockException;
+import com.example.marketplace.exception.OrderAlreadyPaidException;
 import com.example.marketplace.exception.OrderNotFoundException;
+import com.example.marketplace.exception.PaymentNotFoundException;
 import com.example.marketplace.exception.ProductNotFoundException;
 import com.example.marketplace.exception.ProductOffSaleException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -53,10 +55,22 @@ public class ApiExceptionHandler {
                 .body(new ApiResponse<>(40401, exception.getMessage(), null));
     }
 
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePaymentNotFound(PaymentNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(40401, "支付记录不存在", null));
+    }
+
     @ExceptionHandler(OrderNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleOrderNotFound(OrderNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ApiResponse<>(40401, exception.getMessage(), null));
+    }
+
+    @ExceptionHandler(OrderAlreadyPaidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOrderAlreadyPaid(OrderAlreadyPaidException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiResponse<>(40903, exception.getMessage(), null));
     }
 
     @ExceptionHandler(InsufficientStockException.class)

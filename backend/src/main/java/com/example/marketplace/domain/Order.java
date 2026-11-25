@@ -16,6 +16,7 @@ public class Order {
     private String address;
     private String status;
     private OffsetDateTime createdAt;
+    private OffsetDateTime paidAt;
 
     public Long getId() {
         return id;
@@ -111,5 +112,13 @@ public class Order {
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public OffsetDateTime getPaidAt() {
+        return paidAt;
+    }
+
+    public void setPaidAt(OffsetDateTime paidAt) {
+        this.paidAt = paidAt;
     }
 }

@@ -15,7 +15,8 @@ public record OrderResponse(
         String status,
         String buyerPhone,
         String address,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        OffsetDateTime paidAt
 ) {
 
     public static OrderResponse from(Order order) {
@@ -30,7 +31,8 @@ public record OrderResponse(
                 order.getStatus(),
                 order.getBuyerPhone(),
                 order.getAddress(),
-                order.getCreatedAt()
+                order.getCreatedAt(),
+                order.getPaidAt()
         );
     }
 }

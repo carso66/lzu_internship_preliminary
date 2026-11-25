@@ -33,18 +33,25 @@
 
     <select id="findById" resultType="com.example.marketplace.domain.Order">
         SELECT id, order_no, product_id, product_title, quantity, unit_price, total_amount,
-               buyer_name, buyer_phone, address, status, created_at
+               buyer_name, buyer_phone, address, status, created_at, paid_at
         FROM orders
         WHERE id = #{id}
     </select>
 
     <select id="findByOrderNo" resultType="com.example.marketplace.domain.Order">
         SELECT id, order_no, product_id, product_title, quantity, unit_price, total_amount,
-               buyer_name, buyer_phone, address, status, created_at
+               buyer_name, buyer_phone, address, status, created_at, paid_at
         FROM orders
         WHERE order_no = #{orderNo}
     </select>
 
+    <update id="markPaidIfCreated">
+        UPDATE orders
+        SET status = 'paid',
+            paid_at = #{paidAt}
+        WHERE id = #{id}
+          AND status = 'created'
+    </update>
     <select id="countByBuyerPhone" resultType="long">
         SELECT COUNT(*)
         FROM orders
@@ -53,7 +60,7 @@
 
     <select id="findPageByBuyerPhone" resultType="com.example.marketplace.domain.Order">
         SELECT id, order_no, product_id, product_title, quantity, unit_price, total_amount,
-               buyer_name, buyer_phone, address, status, created_at
+               buyer_name, buyer_phone, address, status, created_at, paid_at
         FROM orders
         WHERE buyer_phone = #{buyerPhone}
         ORDER BY created_at DESC, id DESC
