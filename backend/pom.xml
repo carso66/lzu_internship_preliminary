@@ -16,7 +16,8 @@
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
-        <java.version>19</java.version>
+        <java.version>17</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
         <mybatis-spring-boot.version>3.0.2</mybatis-spring-boot.version>
     </properties>
 

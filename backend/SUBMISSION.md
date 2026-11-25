@@ -15,7 +15,7 @@
 | 项 | 版本 |
 |---|---|
 | 操作系统 | Windows 11 |
-| JDK | 19.0.2 |
+| JDK | Java 17 为编译和运行基线，本地开发使用 JDK 19.0.2 |
 | Maven | 3.6.1 |
 | Spring Boot | 3.0.13 |
 | MyBatis Spring Boot Starter | 3.0.2 |
@@ -23,7 +23,7 @@
 
 ## 启动方式
 
-在仓库根目录执行下面的命令。Maven 会在首次启动时下载依赖。应用启动后会执行 schema.sql，在 H2 中创建商品、订单和支付表。
+先用 `mvn -v` 确认 Maven 使用 JDK 17 或更高版本，然后在仓库根目录执行下面的命令。Maven 会在首次启动时下载依赖。应用启动后会执行 schema.sql，在 H2 中创建商品、订单和支付表。
 
 ```powershell
 cd backend
@@ -35,11 +35,9 @@ mvn spring-boot:run
 在 `backend/` 下执行 `mvn test` 运行接口测试，或执行 `mvn clean package` 同时验证测试与打包。当前完整测试套件共 76 条（参数化测试按实际展开后的执行次数统计），覆盖商品发布与参数校验、列表筛选分页、详情查询、上下架状态更新、下单金额计算、订单详情与列表、商品不存在、库存不足、商品下架、并发不超卖、下单事务回滚，以及支付成功、重复支付、并发重复支付、唯一键兜底和支付记录查询。
 
 ```powershell
-$env:JAVA_HOME='C:\Program Files\Java\jdk-19'
-$env:Path="$env:JAVA_HOME\bin;$env:Path"
 cd backend
-& mvn '-Dmaven.repo.local=C:\Users\18537\.m2\repository' test
-& mvn '-Dmaven.repo.local=C:\Users\18537\.m2\repository' clean package
+mvn test
+mvn clean package
 ```
 
 应用启动后在另一个终端执行以下命令。健康检查通过 MyBatis Mapper XML 在 H2 中执行 `SELECT 1`。
@@ -132,10 +130,8 @@ WHERE id = #{id}
 自动化测试：`PaymentApiTest` 共 8 条，覆盖成功支付、订单状态与 `paid_at`、重复支付、按支付单号查询、支付记录不存在、唯一键冲突回滚、订单不存在、非法支付方式，以及 10 个线程同时支付同一订单时恰好 1 个成功、9 个 409、最终只有 1 条支付记录；`PaymentIdCollisionApiTest` 共 1 条，验证支付单号主键碰撞不会被误报为重复支付，且订单状态与支付记录写入均回滚。
 
 ```powershell
-$env:JAVA_HOME='C:\Program Files\Java\jdk-19'
-$env:Path="$env:JAVA_HOME\bin;$env:Path"
 cd backend
-& mvn '-Dmaven.repo.local=C:\Users\18537\.m2\repository' '-Dtest=PaymentApiTest,PaymentIdCollisionApiTest' test
+mvn '-Dtest=PaymentApiTest,PaymentIdCollisionApiTest' test
 ```
 ## 并发不超卖验证（L2-10）
 
@@ -148,10 +144,8 @@ cd backend
 **运行方式**：
 
 ```powershell
-$env:JAVA_HOME='C:\Program Files\Java\jdk-19'
-$env:Path="$env:JAVA_HOME\bin;$env:Path"
 cd backend
-& mvn '-Dmaven.repo.local=C:\Users\18537\.m2\repository' '-Dtest=OrderConcurrencyApiTest' test
+mvn '-Dtest=OrderConcurrencyApiTest' test
 ```
 
 **核对方式**：
