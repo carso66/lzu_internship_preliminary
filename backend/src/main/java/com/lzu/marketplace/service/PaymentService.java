@@ -80,7 +80,16 @@ public class PaymentService {
         LocalDateTime paidAt = LocalDateTime.now().truncatedTo(ChronoUnit.MICROS);
         // 抢占式更新：两个请求同时到达时，只有一个能把 created 改成 paid。
         if (orderMapper.markPaid(orderNo, paidAt) == 0) {
-            throw new BusinessException(40903, 409, "订单已支付");
+            // 更新 0 行有两种可能：已被并发请求支付，或订单处于其它状态（如已取消）
+            Order latest = orderMapper.findByOrderNo(orderNo);
+            if (latest == null) {
+                throw new BusinessException(40401, 404, "订单不存在");
+            }
+            if ("paid".equalsIgnoreCase(latest.getStatus())) {
+                throw new BusinessException(40903, 409, "订单已支付");
+            }
+            // 其它状态（如已取消）：题面错误码表没有对应码，严格只用 40903 表示"订单不可支付"
+            throw new BusinessException(40903, 409, "订单状态为 " + latest.getStatus() + "，不可支付");
         }
 
         Payment payment = new Payment();
