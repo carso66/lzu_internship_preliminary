@@ -93,3 +93,5 @@ check-result.csv
 # 注意：docs/internal/ 在**内部协作仓库**里是要提交的（同事/评审需要看缺陷清单）。
 # 建「学生可见」的仓库前，必须先删掉 docs/internal/，或把下面这行取消注释：
 # docs/internal/
+.env
+testing/maas_logs/
