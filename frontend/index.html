@@ -5,11 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>校园好物市集</title>
   <link rel="stylesheet" href="./src/style.css">
+  <link rel="stylesheet" href="./src/shop.css">
   <script type="module" src="./src/main.js"></script>
 </head>
 <body>
   <header class="site-header">
+  <div class="site-header-inner">
     <h1>校园好物市集</h1>
+    <nav class="page-nav" aria-label="页面导航">
+      <a href="./index.html" aria-current="page">商品管理</a>
+      <a href="./shop.html">商品选购</a>
+    </nav>
+  </div>
   </header>
 
   <main class="layout">
@@ -74,21 +81,24 @@
     <section class="panel publish-panel" aria-labelledby="publish-heading">
       <h2 id="publish-heading">发布商品</h2>
 
-      <form id="publish-form" class="publish">
-        <label>
-          标题
-          <input name="title" required maxlength="50">
-        </label>
+	  <form id="publish-form" class="publish" novalidate>
+		<label>
+		  标题
+		  <input name="title" required aria-describedby="title-error">
+		  <span id="title-error" class="field-error" role="alert"></span>
+		</label>
 
-        <div class="publish-fields">
-          <label>
-            价格（元）
-            <input name="price" inputmode="decimal" placeholder="例如 19.90" required>
+		<div class="publish-fields">
+		  <label>
+			价格（元）
+		  <input name="price" inputmode="decimal" placeholder="例如 19.90" required aria-describedby="price-error">
+          <span id="price-error" class="field-error" role="alert"></span>
           </label>
 
           <label>
             库存
-            <input name="stock" type="number" min="0" max="999" step="1" required>
+          <input name="stock" type="number" min="0" max="999" step="1" required aria-describedby="stock-error">
+          <span id="stock-error" class="field-error" role="alert"></span>
           </label>
         </div>
 

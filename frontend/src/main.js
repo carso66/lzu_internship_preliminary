@@ -53,7 +53,9 @@ function showMessage(element, message, isError = false) {
 }
 
 function formatPrice(cents) {
-  return `¥${(cents / 100).toFixed(2)}`;
+  const yuan = Math.trunc(cents / 100);
+  const fraction = String(cents % 100).padStart(2, '0');
+  return `¥${yuan}.${fraction}`;
 }
 
 function yuanToCents(value) {
@@ -74,7 +76,7 @@ function yuanToCents(value) {
 }
 
 function displayTitle(title) {
-  // 省略 Mock 样例标题里的脚本片段，显示结果仍用 textContent。
+  // 省略 Mock 样例标题里的脚本片段，显示时仍按纯文本处理。
   return title.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '').trim() || title;
 }
 
@@ -231,6 +233,60 @@ async function changeStatus(product, button) {
   }
 }
 
+function validatePublish(fields) {
+  const title = fields.get('title').trim();
+  const stockInput = fields.get('stock').trim();
+  const stock = Number(stockInput);
+  const errors = {};
+
+  if (title.length < 1 || title.length > 50) {
+    errors.title = '请输入 1～50 字的标题。';
+  }
+
+  let price;
+  try {
+    price = yuanToCents(fields.get('price'));
+  } catch (error) {
+    errors.price = error.message;
+  }
+
+  if (stockInput === '' || !Number.isInteger(stock) || stock < 0 || stock > 999) {
+    errors.stock = '请输入 0～999 的整数库存。';
+  }
+
+  for (const name of ['title', 'price', 'stock']) {
+    const input = publishForm.elements.namedItem(name);
+    document.querySelector(`#${name}-error`).textContent = errors[name] || '';
+
+    if (errors[name]) {
+      input.setAttribute('aria-invalid', 'true');
+    } else {
+      input.removeAttribute('aria-invalid');
+    }
+  }
+
+  const firstError = Object.keys(errors)[0];
+  if (firstError) {
+    publishForm.elements.namedItem(firstError).focus();
+    return null;
+  }
+
+  const category = fields.get('category');
+  if (!category) {
+    showMessage(publishMessage, '请选择商品分类。', true);
+    publishForm.elements.namedItem('category').focus();
+    return null;
+  }
+
+  return {
+    title,
+    price,
+    stock,
+    category,
+    description: fields.get('description').trim(),
+  };
+}
+
 searchForm.addEventListener('submit', (event) => {
   event.preventDefault();
   void loadProducts();
@@ -265,21 +321,17 @@ publishForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (publishButton.disabled) return;
 
-  const fields = new FormData(publishForm);
+  showMessage(publishMessage, '');
+  const payload = validatePublish(new FormData(publishForm));
+  if (!payload) return;
+
   publishButton.disabled = true;
   publishButton.textContent = '发布中…';
-  showMessage(publishMessage, '');
 
   try {
     const product = await request('/products', {
       method: 'POST',
-      body: {
-        title: fields.get('title').trim(),
-        price: yuanToCents(fields.get('price')),
-        stock: Number(fields.get('stock')),
-        category: fields.get('category'),
-        description: fields.get('description').trim(),
-      },
+      body: payload,
     });
 
     publishForm.reset();
