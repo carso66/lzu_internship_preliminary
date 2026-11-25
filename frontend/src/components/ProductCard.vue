@@ -20,6 +20,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  canManage: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['buy', 'toggle-status'])
@@ -33,6 +37,23 @@ const category = computed(() => {
   return typeof value === 'string' && value.trim() ? value : '未分类'
 })
 
+const sellerName = computed(() => {
+  const value = props.product?.sellerName
+  return typeof value === 'string' && value.trim() ? value.trim() : '匿名卖家'
+})
+
+const hasSellerId = computed(() => {
+  const value = props.product?.sellerId
+  return value !== undefined && value !== null && String(value).trim() !== ''
+})
+
+const productId = computed(() => {
+  const value = props.product?.id
+  return value === undefined || value === null || String(value).trim() === ''
+    ? '未知'
+    : String(value)
+})
+
 const stock = computed(() => {
   const value = Number(props.product?.stock)
   return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0
@@ -40,13 +61,9 @@ const stock = computed(() => {
 
 const soldOut = computed(() => stock.value === 0)
 
-const status = computed(() =>
-  props.product?.status === 'on' ? 'on' : 'off',
-)
+const status = computed(() => (props.product?.status === 'on' ? 'on' : 'off'))
 
-const statusText = computed(() =>
-  status.value === 'on' ? '在售' : '已下架',
-)
+const statusText = computed(() => (status.value === 'on' ? '在售' : '已下架'))
 
 const statusClass = computed(() =>
   status.value === 'on'
@@ -54,8 +71,11 @@ const statusClass = computed(() =>
     : 'product-card__status--off',
 )
 
+const canBuy = computed(() => status.value === 'on' && !soldOut.value)
+
 const buyText = computed(() => {
   if (props.ordering) return '提交中…'
+  if (status.value === 'off') return '已下架'
   if (soldOut.value) return '已售罄'
   return '购买'
 })
@@ -77,7 +97,7 @@ watch(
 )
 
 function handleBuy() {
-  if (soldOut.value || props.ordering || props.orderLocked) return
+  if (!canBuy.value || props.ordering || props.orderLocked) return
   emit('buy', {
     product: props.product,
     quantity: Number(quantity.value),
@@ -85,16 +105,13 @@ function handleBuy() {
 }
 
 function handleToggleStatus() {
-  if (props.statusUpdating) return
+  if (!props.canManage || props.statusUpdating) return
   emit('toggle-status', props.product)
 }
 </script>
 
 <template>
-  <article
-    class="product-card"
-    :class="{ 'product-card--sold-out': soldOut }"
-  >
+  <article class="product-card" :class="{ 'product-card--sold-out': soldOut }">
     <div class="product-card__header">
       <h2 class="product-card__title" :title="title">
         <RouterLink
@@ -113,12 +130,25 @@ function handleToggleStatus() {
 
     <dl class="product-card__meta">
       <div class="product-card__meta-item">
+        <dt>商品编号</dt>
+        <dd>{{ productId }}</dd>
+      </div>
+      <div class="product-card__meta-item">
         <dt>库存</dt>
         <dd>{{ stock }}</dd>
       </div>
       <div class="product-card__meta-item">
         <dt>分类</dt>
         <dd>{{ category }}</dd>
+      </div>
+      <div class="product-card__meta-item">
+        <dt>来源</dt>
+        <dd class="product-card__seller" :title="sellerName">
+          <span class="product-card__seller-name">{{ sellerName }}</span>
+          <span v-if="!hasSellerId" class="product-card__seller-unverified">
+            身份未核验
+          </span>
+        </dd>
       </div>
     </dl>
 
@@ -133,23 +163,35 @@ function handleToggleStatus() {
           :max="stock"
           step="1"
           inputmode="numeric"
-          :disabled="soldOut || ordering"
+          :disabled="!canBuy || ordering || orderLocked"
         />
         <span>件</span>
       </div>
     </div>
 
     <div class="product-card__footer">
-      <span v-if="soldOut" class="product-card__stock-mark">缺货</span>
+      <span v-if="status === 'off'" class="product-card__unavailable">
+        已下架
+      </span>
+      <span v-else-if="soldOut" class="product-card__stock-mark">缺货</span>
       <span v-else class="product-card__available">可购买</span>
       <div class="product-card__actions">
         <button
           class="product-card__status-action"
           type="button"
-          :disabled="statusUpdating"
+          :disabled="statusUpdating || !canManage"
+          :title="canManage ? undefined : '仅商品所有者或管理员可操作'"
           @click="handleToggleStatus"
         >
-          {{ statusUpdating ? '处理中…' : status === 'on' ? '下架' : '上架' }}
+          {{
+            statusUpdating
+              ? '处理中…'
+              : !canManage
+                ? '无管理权限'
+                : status === 'on'
+                  ? '下架'
+                  : '上架'
+          }}
         </button>
         <RouterLink
           class="product-card__detail"
@@ -160,7 +202,7 @@ function handleToggleStatus() {
         <button
           class="product-card__buy"
           type="button"
-          :disabled="soldOut || ordering || orderLocked"
+          :disabled="!canBuy || ordering || orderLocked"
           @click="handleBuy"
         >
           {{ buyText }}
@@ -261,12 +303,14 @@ function handleToggleStatus() {
 
 .product-card__meta {
   display: flex;
-  gap: 28px;
+  flex-wrap: wrap;
+  gap: 8px 18px;
   margin: 0;
 }
 
 .product-card__meta-item {
   display: flex;
+  min-width: 0;
   align-items: baseline;
   gap: 8px;
 }
@@ -281,6 +325,31 @@ function handleToggleStatus() {
   color: #3f3f46;
   font-size: 14px;
   font-weight: 600;
+}
+
+.product-card__seller {
+  display: flex;
+  min-width: 0;
+  max-width: 18em;
+  align-items: center;
+  gap: 6px;
+}
+
+.product-card__seller-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-card__seller-unverified {
+  flex: none;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #f4f4f5;
+  color: #71717a;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .product-card__quantity {
@@ -352,6 +421,13 @@ function handleToggleStatus() {
   font-weight: 600;
 }
 
+.product-card__unavailable {
+  flex: none;
+  color: #71717a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .product-card__actions {
   display: flex;
   flex-wrap: wrap;
@@ -379,7 +455,7 @@ function handleToggleStatus() {
 }
 
 .product-card__status-action:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   color: #a1a1aa;
 }
 

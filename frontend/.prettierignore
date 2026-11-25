@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+mock
+screenshots
+package-lock.json
+*.md

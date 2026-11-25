@@ -28,22 +28,27 @@
 |---|---|---|
 | 1 | `package.json`、`vite.config.js`、`index.html` | 依赖、脚本、构建入口和页面容器 |
 | 2 | `src/main.js` | Vue 应用如何挂载并注册路由 |
-| 3 | `src/router/index.js` | `/`、`/orders`、`/products/:id` 的映射 |
-| 4 | `src/App.vue` | 顶部导航、全局下单锁、订单刷新 key、全局提示 |
-| 5 | `src/api/index.js` | 请求封装、基础地址、响应解析和导出函数 |
-| 6 | `src/utils/money.js`、`src/utils/product.js` | 金额口径和标题展示清洗 |
-| 7 | `src/components/*.vue` | 商品卡片、发布表单、订单卡片的输入与事件 |
-| 8 | `src/views/*.vue` | 页面状态、数据加载、上下架、支付轮询和详情请求 |
-| 9 | `src/utils/*.test.js` | 约束如何通过自动测试固化 |
-| 10 | `mock/server.mjs` | 只读核对接口字段、状态和错误分支；禁止修改 |
+| 3 | `src/router/routes.js` | `/`、`/orders`、`/products/new`、`/products/:id` 和 404 的路由表 |
+| 4 | `src/router/index.js` | 路由实例、滚动复位、`meta.title` 和浏览器标题 |
+| 5 | `src/App.vue` | 顶部导航、全局下单锁、订单刷新 key、全局提示 |
+| 6 | `src/api/index.js` | 请求封装、基础地址、响应解析和导出函数 |
+| 7 | `src/utils/money.js`、`src/utils/product.js`、`src/utils/quantity.js`、`src/utils/productForm.js`、`src/utils/permissions.js` | 金额口径、标题展示清洗、购买数量校验、表单校验和商品管理权限判断 |
+| 8 | `src/components/*.vue` | 商品卡片、发布表单、订单卡片的输入与事件 |
+| 9 | `src/views/*.vue` | 商品列表、独立上架页、详情、订单和 404 页面状态 |
+| 10 | `src/utils/*.test.js`、`src/api/index.test.js`、`src/router/index.test.js` | 约束如何通过自动测试固化，含商品归属与角色边界 |
+| 11 | `mock/server.mjs` | 只读核对接口字段、状态和错误分支；禁止修改 |
 
 ### 1.3 按任务快速定位
 
 - 改金额或价格展示：先看 `src/utils/money.js` 和 `src/utils/money.test.js`，再看使用它的卡片、表单和详情页。
+- 改购买数量或库存边界：先看 `src/utils/quantity.js` 和 `src/utils/quantity.test.js`，再检查 `App.vue`、商品卡片和详情页的禁购状态。
+- 改商品表单校验或字数/分类边界：先看 `src/utils/productForm.js` 和 `src/utils/productForm.test.js`，再看 `ProductForm.vue`。
 - 改请求地址或接口：先看 `src/api/index.js`，再同步 [代码接口说明](CODE_INTERFACE.md) 中的接口表和调用方。
-- 改商品流程：从 `ProductListView.vue` → `ProductCard.vue` / `ProductForm.vue` → `src/api/index.js` 顺着调用链阅读。
+- 改商品浏览、上下架或购买：从 `ProductListView.vue` → `ProductCard.vue` → `src/api/index.js` 顺着调用链阅读。
+- 改商品发布：从 `ProductCreateView.vue` → `ProductForm.vue` → `src/api/index.js` 顺着调用链阅读。
+- 改商品归属、角色或上下架权限：先看 `src/utils/permissions.js` 和 `permissions.test.js`，再检查 `App.vue` 的会话传参、`ProductListView.vue` 的请求前校验和 `ProductCard.vue` / `ProductDetailView.vue` 的权限提示。
 - 改订单或支付：从 `OrderListView.vue` → `OrderCard.vue` → `createPayment()` / `getPayment()` 阅读，并重点检查卸载清理。
-- 新增页面：先看 `src/router/index.js` 和 `App.vue`，页面内部自行请求数据，不依赖列表传参。
+- 新增页面：先看 `src/router/routes.js`、`src/router/index.js`、`src/router/index.test.js` 和 `App.vue`，页面内部自行请求数据，不依赖列表传参。
 
 ## 2. 核心约定速查
 
@@ -52,7 +57,7 @@
 | 编号 | 约定 |
 |---|---|
 | C1 | `mock/` 是题目提供的只读服务，不修改文件、数据格式或业务规则 |
-| C2 | API 基础地址只集中在 `src/api/index.js` 的 `API_BASE_URL` |
+| C2 | API 基础地址由 `VITE_API_BASE_URL` 决定，默认 `/api`，并只集中在 `src/api/index.js` 的 `API_BASE_URL` |
 | C3 | 接口统一返回 `{ code, message, data }`，调用方拿到的是成功时的 `data` |
 | C4 | 所有接口金额字段都使用整数分，不能把分直接当元展示 |
 | C5 | 元转分使用 `Math.round(Number(yuan) * 100)`，不能使用 `parseInt` 或裸乘 100 |
@@ -62,7 +67,10 @@
 | C9 | 发布、上下架、下单、支付都必须有请求锁或禁用态，防止快速连点 |
 | C10 | 离开订单页必须停止轮询，并阻止在途响应继续更新状态 |
 | C11 | 详情页必须能直接打开，不依赖列表页传入的商品对象 |
-| C12 | 修改金额、接口、轮询或标题清洗逻辑时，同步测试和文档 |
+| C12 | 修改功能、接口、校验、测试或工程化配置时，同步 `README.md`、`CODE_INTERFACE.md`、`DESIGN.md`、`SUBMISSION.md` 和 `AI_USAGE.md` 中的相关事实与边界 |
+| C13 | 商品唯一身份是 `id`；标题只用于搜索和展示，同名商品不得自动合并或静默去重 |
+| C14 | 卖家归属只按当前会话用户 ID 与商品 `sellerId` 精确匹配；`sellerName` 只能展示，绝不能作为权限依据 |
+| C15 | 前端权限判断只改善体验；真实发布、上下架、订单和管理员操作必须由服务端重新鉴权，演示管理员不等于真实登录 |
 
 ## 3. 范围约束
 
@@ -70,27 +78,54 @@
 - 使用 Vue 3 + Vite + vue-router，不引入整站后台模板。
 - 页面文案和交互面向中文用户；金额展示使用人民币符号 `¥`。
 - 不把构建产物、依赖目录或本地临时文件提交到仓库。
-- 自动化测试使用 Vitest，测试文件与对应工具放在 `src/utils/`；临时浏览器脚本不进入仓库。
-- `src/components/HelloWorld.vue`、`src/assets/vite.svg` 等是脚手架残留，不参与当前页面运行；后续可清理，但不要把它们误认为业务组件。
+- 自动化测试使用 Vitest，测试文件跟随被测试模块放置（`src/api/index.test.js`、`src/utils/*.test.js`），不启动浏览器即可运行；临时浏览器脚本不进入仓库。
+- 脚手架示例组件和资源已清理；`index.html` 仍引用 `public/favicon.svg`，不要误删当前站点使用的公共资源。
 
 ## 4. 数据与接口约束
 
-- API 基础地址集中定义在 `src/api/index.js`：
+- API 基础地址由环境变量和同源默认值共同决定，并集中定义在 `src/api/index.js`：
 
 ```js
-export const API_BASE_URL = 'http://127.0.0.1:3001/api'
+export const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL?.trim() || '/api'
+).replace(/\/+$/, '')
 ```
 
-- 修改 Mock 端口时，只调整该常量，不在组件中散落硬编码地址。
+- 默认请求同源 `/api`，由 `vite.config.js` 的 `server.proxy` / `preview.proxy` 转发到 Mock 服务。
+- 修改 API 地址时，复制 `.env.example` 为本地 `.env` 并设置 `VITE_API_BASE_URL`；跨域部署可填写完整地址，不要在组件中散落硬编码地址。
 - 服务端统一响应格式为 `{ code, message, data }`。
 - `code === 0` 时调用方拿到 `data`；否则抛出带 `message` 的 `Error`。
 - HTTP 非 2xx 时优先读取响应体的 `message`，没有 message 才使用 HTTP 状态码兜底。
 - `GET /api/products` 返回 `{ total, page, pageSize, items }`，列表页从 `data.items` 读取。
-- `GET /api/orders` 返回 `{ total, page, pageSize, items }`；订单页同时兼容接口直接返回数组的未来变化。
+- `GET /api/orders?pageSize=50` 返回 `{ total, page, pageSize, items }`；订单页同时兼容接口直接返回数组的未来变化。
 - 商品上下架使用 `PATCH /api/products/:id/status`，请求体为 `{ status: 'on' | 'off' }`。
 - 下单请求体必须使用 `{ productId, quantity }`，其中 `quantity` 是大于 0 的整数。
 - 支付请求体使用 `{ orderId, method }`，`method` 只能是 `alipay` 或 `wechat`。
 - Mock 数据只存在内存中，重启或 `POST /api/_reset` 会恢复初始状态。
+
+### 4.1 商品身份与来源
+
+- 商品唯一身份是接口返回的 `id`；标题只是搜索和展示字段，相同标题不代表同一商品。
+- 同名商品应各自保留为独立 listing，分别展示商品编号、卖家、价格、库存、状态、成色和规格；不能只因标题相同就自动合并。
+- `sellerId` 是卖家归属字段。卖家管理商品时，服务端必须用当前会话用户 ID 与商品 `sellerId` 比对。
+- `sellerName` 只是展示名称，缺失或空白时显示“匿名卖家”；它不能用于判定商品归属，两名卖家同名也不构成任何共享权限。
+- 没有有效 `sellerId` 的商品显示“身份未核验”。当前 Mock 商品没有真实卖家编号，新建商品请求也不提交 `sellerId`，因此不能声称来源已认证。
+- 真实后端应从会话推导并写入卖家身份，提供卖家认证与信用信息；成熟商品模型可继续增加 `spuId`、`skuId` 和 `auditStatus`。
+
+### 4.2 角色与操作权限契约
+
+| 角色 | 目标权限 |
+|---|---|
+| 游客 | 浏览商品和公开详情，不发布商品，不管理商品 |
+| 买家 | 浏览、下单、支付，并且只能查看自己的订单 |
+| 卖家 | 发布商品，并且只能管理 `sellerId` 与自身用户 ID 一致的商品 |
+| 管理员 | 审核商品、强制下架、处理举报、查看审计日志 |
+
+- 上架页的目标访问者是已登录卖家或管理员；游客和买家应被引导登录或完成卖家资质，而不是直接获得发布权限。
+- 前端 `canManageProduct()` 只控制按钮和提示，不能阻止有人直接调用接口；服务端必须在每次写操作时重新校验角色、会话和资源归属。
+- 角色能力可以叠加，例如卖家同时作为买家下单时，两类权限应分别校验；不能因为一个角色通过就放宽另一资源的归属检查。
+- 管理员操作必须记录操作者、目标商品、动作、时间和结果，禁止只在前端隐藏按钮。
+- 当前固定演示会话明确标记为 `isDemo: true`，仅用于本地 UI 演示，不是认证结果，也没有权限隔离效果。
 
 完整函数签名、返回形状和组件调用方见 [代码接口说明](CODE_INTERFACE.md)。
 
@@ -121,17 +156,19 @@ export const API_BASE_URL = 'http://127.0.0.1:3001/api'
 - 加载中显示“加载中…”；无筛选结果时显示“没找到相关商品”和“清空筛选”；错误时显示错误 message 和重试按钮。
 - 搜索是前端按标题过滤，页面不应因为输入关键词而偷偷改变接口返回结构。
 - 库存为 0 的商品必须有肉眼可见区别：灰化、显示“缺货”、禁用购买按钮三者同时存在。
-- 商品数量输入范围为 1 到库存；库存为 0 时不能下单。
-- 发布成功后必须重置 5 个字段，并通知父组件重新拉取商品列表。
+- 商品数量输入范围为 1 到库存；库存为 0 时不能下单，提交时必须通过 `getQuantityError()` 复核。
+- 商品描述选填，最多 200 字；字段下方显示校验错误和实时 x/200 字数。
+- 发布成功后必须重置 5 个字段和字段错误；`ProductCreateView` 展示新商品 ID、详情入口和“继续上架”，不通知列表页刷新。
+- 独立上架页用于分离信息架构和导航职责，不等同于登录、卖家归属或权限隔离。
 - 发布中、上下架处理中和支付中都需要按钮禁用与进行中文案，防止快速连点。
-- 商品被下架时，详情页不能继续购买；列表页保留下架商品用于展示状态和后端错误反馈。
+- 商品被下架时，列表卡片和详情页都不能购买；标题、详情链接仍可访问，以便查看下架状态。
 
 ## 8. 防重复请求约束
 
 - 发布商品：`ProductForm.submitting` 为真时不得再次调用 `createProduct()`。
 - 上下架：同一商品 ID 在 `statusUpdatingIds` 中时不得再次发送 PATCH；不同商品可以独立操作。
 - 下单：`App.creatingOrder` 为真时所有购买按钮都必须禁用，防止重复订单。
-- 数量必须由 `App.vue` 再次校验为正整数，不能只依赖输入框的 `min/max`。
+- 数量必须由 `App.vue` 调用 `getQuantityError()` 再次校验为正整数、库存数据有效且不超过库存，不能只依赖输入框的 `min/max`。
 - 已支付订单的支付按钮必须永久禁用；后端仍需保留重复支付 409 保护。
 - 防重复锁必须在 `finally` 中释放，失败后按钮要恢复可点。
 - 上下架集合更新必须创建新的 `Set`，不要直接修改旧集合，避免 Vue 响应式依赖漏更新。
@@ -140,11 +177,16 @@ export const API_BASE_URL = 'http://127.0.0.1:3001/api'
 
 | 路径 | 组件 | 约束 |
 |---|---|---|
-| `/` | `ProductListView` | 商品列表入口、搜索、发布、上下架和购买 |
+| `/` | `ProductListView` | 商品列表入口、搜索、上下架和购买，不再内嵌发布表单 |
+| `/products/new` | `ProductCreateView` | 独立上架页；必须注册在 `/products/:id` 之前 |
 | `/orders` | `OrderListView` | 订单列表与支付轮询 |
 | `/products/:id` | `ProductDetailView` | 必须能直接打开，不依赖列表传入状态 |
+| `/:pathMatch(.*)*` | `NotFoundView` | 未匹配路径统一显示 404，并提供返回入口 |
 
+- 路由表集中在 `src/router/routes.js`，`src/router/index.js` 只保留路由实例和全局钩子。
+- `/products/new` 必须先于 `/products/:id`，否则 `new` 会被当成商品 ID；`src/router/index.test.js` 必须保留该优先级用例。
 - 使用 `createWebHistory()` 后，生产静态服务器必须为未知前端路径回退到 `index.html`。
+- 每条路由通过 `meta.title` 声明标题，`router.afterEach()` 将 `document.title` 更新为 `${title} · 校园好物市集`。
 - 详情页不存在或请求 404 时显示“商品不存在”或后端 message，不能白屏。
 - 详情页的“返回”应回到商品列表，不假设用户从列表进入。
 - 详情页监听 `route.params.id` 变化，并让旧请求失效，避免快速切换 ID 时显示错商品。
@@ -159,25 +201,35 @@ export const API_BASE_URL = 'http://127.0.0.1:3001/api'
 - 已经在途的请求返回后必须检查 `cancelled` 和 token，不能再 setState 或继续创建轮询。
 - 同一时间只允许一个活动轮询定时器；离开订单页后 5 秒内不应出现新的 `GET /api/payments` 请求。
 - 商品上下架和商品详情请求返回时也要检查组件是否已卸载，避免旧请求改写状态。
+- 商品列表和订单列表每次加载递增 `loadRequestId`；只有最新请求可回写数据或错误，卸载时使在途请求全部失效。
 
 ## 11. 测试与文档同步约束
 
 - `npm test` 必须可以在不启动浏览器的情况下运行。
-- 当前测试覆盖 `money.js` 和 `product.js`；修改这两个模块时必须同步更新测试。
+- 当前测试覆盖 `money.js`、`product.js`、`quantity.js`、`productForm.js`（表单校验）、`permissions.js`（商品归属）、`api/index.js`（请求封装）和 `router/routes.js`（路由匹配），共 7 个测试文件、67 个用例；修改这些模块时必须同步更新测试。
 - 金额测试至少保留 `0.01`、`19.9`、`12.5`、`1`、`100` 和浮点误差用例。
 - 标题测试至少保留 script 标签、HTML 标签、控制字符、零宽字符和正常长标题用例。
+- 数量测试至少保留合法整数、零、负数、小数、非数字、超库存、零库存和异常库存用例。
+- 表单测试至少保留 emoji 码点计数、标题 50/51 字、价格两位小数、库存 0~999 和描述 200/201 字用例。
+- API 测试至少保留 URL 拼接、路径参数编码、JSON 请求体、业务 code 非 0、HTTP 非 2xx、空响应/非 JSON 和网络错误用例。
+- 路由测试至少保留 `/products/new` 优先于 `/products/:id`、普通商品 ID、多余路径段 404 和未知路径 404 用例。
+- 权限测试至少保留无会话、游客/买家、卖家本人/他人、数字/字符串 ID、同名不同人、空 `sellerId`、管理员和演示会话用例。
 - 测试输出不能伪造成浏览器 E2E；临时 Playwright 验证与仓库内 Vitest 单测要明确区分。
-- 修改 API 函数签名、组件 props/emits、路由或数据形状时，必须同步更新 [代码接口说明](CODE_INTERFACE.md)。
+- 修改 API 函数签名、组件 props/emits、路由表或数据形状时，必须同步更新 [代码接口说明](CODE_INTERFACE.md)。
 - 修改验收范围、完成状态或已知限制时，必须同步更新 [提交说明](SUBMISSION.md) 和 [项目 README](README.md)。
-- 新功能完成后至少执行 `npm test` 和 `npm run build`；涉及交互边界时再补浏览器手动验证。
+- 新功能完成后至少执行 `npm run check`；该命令依次执行 ESLint、Prettier 检查、Vitest 和生产构建。涉及交互边界时再补浏览器手动验证。
 
 ## 12. 当前未实现边界
 
 以下内容不在当前代码中，不应在验收说明里写成已完成：
 
 - 下单后在商品列表页即时回写库存；当前通过进入订单页、再次进入商品列表时重新请求完成刷新。
-- 组件级测试和完整 Playwright E2E 套件；当前仓库只有工具函数单测。
-- 分页控件、服务端搜索、登录鉴权、图片上传和富文本编辑。
+- 组件级测试和完整 Playwright E2E 套件；当前仓库只有 7 个单元测试文件（工具函数、表单校验、商品归属、API 请求封装和路由匹配）。
+- 分页控件、服务端搜索、图片上传和富文本编辑。
+- 真实登录、服务端会话实名认证和接口级授权；当前只有前端体验层 `canManageProduct()` 与明确标记的演示管理员，直接调用接口仍不受其限制。
+- 真实卖家 `sellerId`、商品归属持久化和来源认证；Mock 新建商品固定写为“我”且没有 `sellerId`，界面只能显示“身份未核验”。`sellerName` 不能作为权限依据。
+- 管理员审核、强制下架、举报处理和审计日志；演示管理员目前只能通过现有上下架按钮体验状态切换，不代表这些管理能力已完成。
+- 同名商品自动去重与合并；当前以 `id` 区分，同名商品是独立 listing，禁止把相同标题视为同一商品。
 - 退款、优惠券和更复杂的支付状态模型。
 - 生产静态服务器的 SPA History fallback。
 
@@ -185,10 +237,13 @@ export const API_BASE_URL = 'http://127.0.0.1:3001/api'
 
 ## 13. 改动前检查表
 
-1. 是否破坏了 C1~C12 中的任一核心约定？
+1. 是否破坏了 C1~C15 中的任一核心约定？
 2. 是否修改了 `mock/`？如果修改了，撤回。
 3. 金额是否仍以整数分提交，并以 `¥xx.xx` 展示？
 4. 新增文案是否通过 `{{ }}` 渲染，是否存在 `v-html`？
 5. 新增异步操作是否有失败提示、请求锁和卸载保护？
-6. 新增或变更的 API、props、emits、路由是否写进 `CODE_INTERFACE.md`？
-7. 测试、构建和验收文档是否同步？
+6. 新增或变更的 API、props、emits、路由、`meta.title` 是否写进 `CODE_INTERFACE.md`？
+7. 数量、下架状态和描述长度是否在本地输入与全局入口都做了校验？
+8. 商品归属是否只按 `sellerId` 判断，是否避免用 `sellerName` 或标题授权？
+9. 是否明确前端权限不替代服务端鉴权，且没有把演示管理员写成真实登录？
+10. `npm run check` 是否通过，测试、构建和验收文档是否同步？

@@ -1,6 +1,6 @@
 # 校园好物市集 · 前端
 
-这是一个基于 Vue 3 + Vite 的校园商品交易前端，对接 `mock/server.mjs` 提供的模拟接口。当前已经打通商品浏览与筛选、商品发布、商品上下架、数量下单、订单列表、支付轮询和商品详情查看等链路。
+这是一个基于 Vue 3 + Vite 的校园商品交易前端，对接 `mock/server.mjs` 提供的模拟接口。当前已经打通商品浏览与筛选、独立页面发布商品、商品上下架、数量下单、订单列表、支付轮询和商品详情查看等链路；商品卡片和详情页会用商品编号区分同名商品，并标注卖家来源是否具有可核验的卖家编号。
 
 ## 项目文档
 
@@ -19,28 +19,41 @@
 
 | 项 | 使用方案 |
 |---|---|
+| 运行时 | Node.js >= 22.12（`frontend/.nvmrc` 固定为 22.12.0） |
 | 框架 | Vue 3.5 |
 | 构建工具 | Vite 8 |
 | 路由 | vue-router 4（History 模式） |
 | 语言 | JavaScript |
 | 样式 | 原生 CSS，组件内 scoped style |
 | 单元测试 | Vitest 5 |
+| 代码质量 | ESLint 10 + Prettier 3 |
+| 持续集成 | GitHub Actions 执行 `npm ci` 与 `npm run check` |
 | 数据服务 | `mock/server.mjs`，零额外依赖 |
 
 ## 快速启动
 
+环境要求：Node.js >= 22.12（推荐使用 `frontend/.nvmrc` 中的 22.12.0），npm >= 10。
+
+在仓库根目录执行一次依赖安装：
+
+```powershell
+cd frontend
+npm ci
+```
+
+需要调整依赖时使用 `npm install` 更新 `package-lock.json`。
+
 先启动 Mock API（终端 A）：
 
 ```powershell
-cd D:\Projects\personal\lzu_internship_preliminary\frontend
+cd frontend
 node mock/server.mjs
 ```
 
 再启动前端（终端 B）：
 
 ```powershell
-cd D:\Projects\personal\lzu_internship_preliminary\frontend
-npm install
+cd frontend
 npm run dev
 ```
 
@@ -48,6 +61,8 @@ npm run dev
 
 - 前端：<http://localhost:5173>
 - Mock API：<http://127.0.0.1:3001/api>
+
+前端默认使用同源 `/api` 作为 API 基础地址。Vite 的 `server.proxy` 和 `preview.proxy` 会把 `/api` 转发到 `http://127.0.0.1:3001`。需要覆盖时，复制 `.env.example` 为 `.env` 并设置 `VITE_API_BASE_URL`；前端与 API 不同域时可填写完整地址。
 
 如果需要恢复 Mock 初始数据，可在服务运行时执行：
 
@@ -61,62 +76,87 @@ Mock 数据保存在内存中，重启 `mock/server.mjs` 会恢复初始状态�
 
 | 路径 | 页面 | 说明 |
 |---|---|---|
-| `/` | `ProductListView` | 商品列表、标题搜索、发布商品、上下架和购买入口 |
+| `/` | `ProductListView` | 商品列表、标题搜索、上下架和购买入口 |
+| `/products/new` | `ProductCreateView` | 独立的上架商品页面；提交表单并在成功后查看新商品 |
 | `/orders` | `OrderListView` | 订单列表、支付宝/微信支付、支付状态轮询 |
 | `/products/:id` | `ProductDetailView` | 商品详情；直接打开 URL 也会自行请求数据；不存在时显示“商品不存在” |
+| `/:pathMatch(.*)*` | `NotFoundView` | 未匹配路径的 404 页面，提供返回商品列表入口 |
 
-`App.vue` 顶部提供“商品列表 / 我的订单”导航。商品详情属于商品相关页面，导航中的“商品列表”会保持激活状态。
+`App.vue` 顶部提供“商品列表 / 上架商品 / 我的订单”三个入口。“上架商品”有独立高亮状态；商品详情仍归在“商品列表”入口下。每条路由通过 `meta.title` 设置浏览器标题，格式为 `${title} · 校园好物市集`。静态路径 `/products/new` 必须先于 `/products/:id` 注册，且已有路由单测锁定这一优先级。
 
 ## 目录结构
 
 ```text
 frontend/
+├── .env.example                # API 地址配置示例
+├── .nvmrc                      # Node.js 版本
+├── .prettierignore
+├── .prettierrc.json
+├── eslint.config.js
 ├── mock/                       # 题目提供的 Mock 服务，未修改
 ├── screenshots/                # 验收截图
 ├── src/
 │   ├── api/index.js            # API 基础地址与统一请求封装
+│   ├── api/index.test.js       # API 请求封装单元测试
 │   ├── components/
 │   │   ├── ProductCard.vue     # 商品展示、数量输入、购买和上下架事件
 │   │   ├── ProductForm.vue     # 商品发布表单与字段校验
 │   │   └── OrderCard.vue       # 订单展示与支付入口
-│   ├── router/index.js         # 路由配置
+│   ├── router/
+│   │   ├── routes.js           # 路由表，便于单独验证匹配优先级
+│   │   ├── index.js            # 路由实例、页面标题与 404
+│   │   └── index.test.js       # /products/new 与详情/404 匹配测试
 │   ├── utils/
 │   │   ├── money.js            # 元/分转换与金额展示
 │   │   ├── money.test.js       # 金额单元测试
 │   │   ├── product.js          # 商品标题清洗
-│   │   └── product.test.js     # 标题清洗单元测试
+│   │   ├── product.test.js     # 标题清洗单元测试
+│   │   ├── quantity.js         # 购买数量与库存校验
+│   │   ├── quantity.test.js    # 数量校验单元测试
+│   │   ├── productForm.js      # 商品表单校验与码点计数
+│   │   ├── productForm.test.js # 表单校验单元测试
+│   │   ├── permissions.js      # 角色常量、演示会话与商品管理权限判断
+│   │   └── permissions.test.js # 商品归属与角色边界测试
 │   ├── views/
-│   │   ├── ProductListView.vue
+│   │   ├── ProductListView.vue   # 商品浏览、搜索、上下架和购买
+│   │   ├── ProductCreateView.vue # 独立上架页与发布成功反馈
+│   │   ├── ProductDetailView.vue
 │   │   ├── OrderListView.vue
-│   │   └── ProductDetailView.vue
+│   │   └── NotFoundView.vue
 │   ├── App.vue
 │   ├── main.js
 │   └── style.css
+├── package-lock.json
 ├── package.json
 └── vite.config.js
 ```
+
+仓库根目录的 `.github/workflows/frontend-ci.yml` 负责 Lint、格式检查、单测和构建。
 
 ## 已实现功能
 
 ### 商品列表
 
 - 进入页面调用 `getProducts({ pageSize: 50 })`，使用返回的 `data.items` 渲染，不硬编码商品。
-- 卡片显示标题、`formatPrice(price)`、库存、分类以及“在售 / 已下架”徽标。
+- 卡片显示标题、`formatPrice(price)`、商品编号、库存、分类、来源以及“在售 / 已下架”徽标；来源取 `sellerName`，缺失时显示“匿名卖家”，没有 `sellerId` 时显示“身份未核验”。
 - 库存为 0 的卡片整体灰化、显示“缺货”、购买按钮禁用。
+- 已下架商品保留在列表中用于查看状态和进入详情，但购买按钮与数量输入禁用，按钮文案为“已下架”。
 - 过长标题使用单行省略，不撑破卡片布局。
 - 支持按标题前端过滤，并提供“清空筛选”按钮。
 - 页面使用 `loading / error / empty / ready` 互斥状态，分别显示加载、错误、空结果和列表内容。
+- 每次加载分配请求 ID，旧响应不会覆盖新结果；组件卸载时使在途请求失效。
 - 商品标题只通过 Vue 的 `{{ }}` 渲染，没有使用 `v-html`。
 
-### 商品发布
+### 上架商品（独立页面）
 
+- 页面路由为 `/products/new`，顶部导航和商品列表页的“上架商品”按钮都可进入；商品列表不再嵌入发布表单。
 - 字段包括标题、价格、库存、分类和描述。
 - 分类固定为 5 项：数码、图书、服饰、食品、文具。
-- 标题校验 1~50 字；价格必填、大于 0、最多两位小数；库存为 0~999 的整数。
-- 校验错误显示在对应字段下方，不使用 `alert`。
+- 标题校验 1~50 字；价格必填、大于 0、最多两位小数；库存为 0~999 的整数；描述选填且最多 200 字。
+- 五个字段的错误分别显示在对应字段下方，不使用 `alert`；描述输入区实时显示 `x/200` 字数。
 - 提交前通过 `yuanToFen()` 将元金额转换为整数分。
 - 提交中按钮禁用并显示“提交中…”，避免重复提交。
-- 成功后显示 toast、重置 5 个字段，并触发父组件重新拉取商品列表。
+- 成功后显示 toast、重置 5 个字段，并在页面内展示新商品标题、商品 ID、“查看详情”和“继续上架”入口；再次进入商品列表时会重新请求，因此新商品可见。
 - 失败时展示后端返回的 `message`，按钮恢复可点。
 
 ### 商品上下架
@@ -124,19 +164,37 @@ frontend/
 - 在售商品显示“下架”，已下架商品显示“上架”，请求中显示“处理中…”并禁用按钮。
 - 调用 `updateProductStatus(id, status)`；成功后只更新对应商品的徽标和按钮状态。
 - `ProductListView` 使用 `statusUpdatingIds` 按商品 ID 加锁，同一商品快速连点只会产生一次 PATCH。
-- 列表中已下架商品仍可点击购买，以便展示后端返回的“商品已下架”错误；库存为 0 时购买按钮在 UI 层禁用。
+- 请求前调用 `canManageProduct(product, session)`：卖家只能管理 `sellerId` 与自身用户 ID 一致的商品，管理员可管理全部商品；无权限时卡片显示“无管理权限”并禁用按钮。
+- 已下架商品会立即禁用购买按钮和数量输入，按钮文案为“已下架”；仍可通过标题进入详情查看，但详情页同样不可购买。
+
+### 同名商品、来源与权限演示
+
+- 商品唯一身份是 `id`，标题只是搜索和展示字段。同名商品各自保留为独立列表项，不自动合并或静默去重。
+- 商品卡片和详情页都显示“商品编号”；卖家来源优先显示 `sellerName`，缺失时显示“匿名卖家”。商品没有有效 `sellerId` 时，界面额外显示“身份未核验”。
+- `sellerName` 只是展示名称，不能用于判定商品归属。`canManageProduct()` 只接受有效会话；卖家分支要求商品的 `sellerId` 与当前用户 ID 完全一致，管理员分支可管理全部商品。
+- 顶部当前显示“演示身份：管理员”。该会话在代码中通过 `isDemo: true` 明确标记，只用于本地 UI 演示，不是登录认证结果。
+- 上架页目前不提交 `sellerId`，Mock 新建商品也没有卖家编号，因此新商品会显示“身份未核验”。真实后端必须从 token / session 推导卖家身份，不能信任客户端提交的 `sellerId` 或角色。
+- 前端按钮禁用只改善体验，不是安全边界。即使前端判定通过，服务端仍必须对发布、上下架、下单和支付重新鉴权。
+
+| 角色 | 目标权限 | 当前前端状态 |
+|---|---|---|
+| 游客 | 浏览商品 | 可浏览商品；当前 UI 固定使用演示管理员，尚未实现真实游客会话 |
+| 买家 | 浏览、下单、支付、查看自己的订单 | 下单与支付界面已实现，但订单归属和真实登录未实现 |
+| 卖家 | 仅管理本人商品 | 已有 `sellerId` 精确匹配的权限函数与单测，尚无真实会话和数据字段 |
+| 管理员 | 审核、强制下架、处理举报、查看审计日志 | 演示管理员可切换任意商品状态；审核、举报和审计能力未实现 |
 
 ### 数量选择与下单
 
 - 商品卡片和详情页提供购买数量输入，范围为 1 到当前库存。
-- 购买事件传递 `{ product, quantity }`，`App.vue` 再次校验数量必须是大于 0 的整数。
+- 购买事件传递 `{ product, quantity }`，`App.vue` 通过 `getQuantityError(quantity, stock)` 再次校验正整数、库存异常和数量上限，并拒绝已下架商品。
 - 请求体为 `{ productId, quantity }`，例如购买 2 件时提交 `{"productId":1,"quantity":2}`。
 - 创建订单期间所有购买按钮锁定，避免快速连点产生重复订单。
 - 下单成功后递增 `ordersRefreshKey`、跳转 `/orders` 并提示订单号；订单页挂载或收到刷新信号时会重新调用 `getOrders()`。
 
 ### 订单与支付
 
-- 订单页调用 `getOrders()`，兼容 `data.items` 和直接返回数组两种情况。
+- 订单页调用 `getOrders()`，实际请求 `/orders?pageSize=50`，兼容 `data.items` 和直接返回数组两种情况。
+- 订单列表同样使用请求 ID 防止旧响应覆盖新结果，卸载时使在途请求失效。
 - 订单卡片显示订单号、商品名、数量、`formatPrice(totalAmount)` 和中文状态：`created → 待支付`、`paid → 已支付`。
 - 待支付订单可选择支付宝（`alipay`）或微信（`wechat`）。
 - 点击后调用 `createPayment({ orderId, method })`，取得 `paymentId`。
@@ -167,10 +225,12 @@ frontend/
 `src/api/index.js` 中集中定义了基础地址：
 
 ```js
-export const API_BASE_URL = 'http://127.0.0.1:3001/api'
+export const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL?.trim() || '/api'
+).replace(/\/+$/, '')
 ```
 
-如果 Mock 端口改变，只需要改这一处。统一请求函数会解析 `{ code, message, data }`：
+默认使用同源 `/api`，由 Vite 开发/预览代理转发到 Mock。需要直连其它环境时，在本地 `.env` 中设置 `VITE_API_BASE_URL`；生产部署需配置反向代理，或在构建时提供完整 API 地址。统一请求函数会解析 `{ code, message, data }`：
 
 - `code === 0`：返回 `data`。
 - 业务失败：抛出带后端 `message` 的 `Error`。
@@ -193,23 +253,31 @@ getPayment(paymentId)
 
 | 验收项 | 状态 | 说明 |
 |---|---|---|
-| L0-1 商品列表 | 已实现 | 接口渲染、金额格式、缺货灰化、状态徽标、长标题省略 |
-| L0-2 发布表单 | 已实现 | 元输入、分类 5 项、整数分提交 |
-| L0-3 发布反馈 | 已实现 | toast、字段重置、父组件刷新 |
+| L0-1 商品列表 | 已实现 | 接口渲染、金额格式、缺货/下架禁购、状态徽标、长标题省略、请求竞态保护 |
+| L0-2 发布表单 | 已实现 | 独立 `/products/new` 页面、元输入、分类 5 项、描述 200 字限制、整数分提交 |
+| L0-3 发布反馈 | 已实现 | toast、字段重置、新商品 ID、详情入口和“继续上架” |
 | L0-4 上下架 | 已实现 | 卡片操作、PATCH 请求锁、成功同步状态、失败显示 message |
 | L0-5 加载/空态 | 已实现 | 四种状态互斥，空态可清空筛选 |
-| L1-6 下单 | 已实现 | 数量选择、库存上限、请求体使用真实 quantity、成功刷新订单 |
+| L1-6 下单 | 已实现 | 数量选择、全局正整数/库存上限校验、下架禁购、请求体使用真实 quantity |
 | L1-7 订单列表 | 已实现 | 订单五项字段、中文状态、金额格式、新订单可见 |
 | L1-8 金额处理 | 已实现 | 元/分转换、两位小数展示、多件订单金额由后端整数分计算 |
-| L1-9 表单校验 | 已实现 | 标题、价格、库存校验均在前端拦截 |
+| L1-9 表单校验 | 已实现 | 标题、价格、库存和描述长度均在前端拦截 |
 | L2-10 支付轮询 | 已实现 | 1 秒轮询、10 次上限、processing 不提前成功、卸载清理 |
 | L2-11 防重复提交 | 已实现 | 发布锁、单商品上下架锁、全局下单锁 |
-| L2-12 自动化测试 | 已实现（单测） | Vitest 覆盖金额转换、展示兜底和标题清洗，共 15 个用例 |
-| L2-13B 路由详情 | 已实现 | `/products/:id`、直接打开、返回、商品不存在提示 |
+| L2-12 自动化测试 | 已实现（单测） | Vitest 覆盖金额、标题清洗、数量校验、表单校验、商品归属与角色边界、API 错误处理和路由优先级，共 7 个文件 67 个用例 |
+| L2-13B 路由详情 | 已实现 | `/products/:id`、直接打开、返回、商品不存在提示、全局 404 与动态标题 |
 
 ## 自检与验证
 
-运行单元测试：
+推荐一键执行 Lint、格式检查、单测和生产构建：
+
+```powershell
+npm run check
+```
+
+该命令依次运行 `eslint .`、`prettier --check .`、`vitest run` 和 `vite build`。本次全部通过。
+
+单独运行单元测试：
 
 ```powershell
 npm test
@@ -220,12 +288,12 @@ npm test
 ```text
  RUN  v5.1.1 D:/Projects/personal/lzu_internship_preliminary/frontend
 
- Test Files  2 passed (2)
-      Tests  15 passed (15)
-   Duration  235ms
+ Test Files  7 passed (7)
+      Tests  67 passed (67)
+   Duration  496ms (import 48%, transform 31%, tests 12%, worker 9%)
 ```
 
-运行生产构建：
+单独运行生产构建：
 
 ```powershell
 npm run build
@@ -235,19 +303,25 @@ npm run build
 
 ```text
 vite v8.3.8 building client environment for production...
-✓ 44 modules transformed.
+transforming...
+✓ 52 modules transformed.
+rendering chunks...
+computing gzip size...
 dist/index.html                   0.47 kB │ gzip:  0.33 kB
-dist/assets/index-98yttaWV.css   22.01 kB │ gzip:  3.92 kB
-dist/assets/index-CCwSLHrO.js   124.31 kB │ gzip: 46.10 kB
-✓ built in 153ms
+dist/assets/index-vEtfxQyy.css   28.06 kB │ gzip:  4.81 kB
+dist/assets/index-BB1ZHiP4.js   132.28 kB │ gzip: 48.40 kB
+
+✓ built in 248ms
 ```
 
-另使用临时 Playwright 脚本做过浏览器全链路验证，主要结果：
+> 注：上面的 `Duration` 与 `built in` 毫秒值会随机器负载波动；验收以 `7 passed (7)`、`67 passed (67)` 和 `52 modules transformed` 为准。
+
+此前使用临时 Playwright 脚本做过浏览器全链路验证，主要结果：
 
 - 商品列表加载 24 条数据，页面无 `NaN` / `undefined`。
 - 长标题保持单行省略；异常标题清洗后显示“二手教材”，不执行脚本。
 - 51 字标题校验、`19.999` 价格和 `1.5` 库存均在字段下方显示错误。
-- `19.9` 元发布时实际请求 `price: 1990`，成功后表单重置并刷新列表。
+- 此前在列表内嵌表单阶段验证过：`19.9` 元发布时实际请求 `price: 1990`，成功后表单重置。独立上架页拆分发生在这轮浏览器验证之后，本轮未重新执行浏览器回归。
 - 同一商品快速连点上下架只产生 1 次 PATCH。
 - 数量 2 下单请求体为 `{"productId":1,"quantity":2}`，新订单显示 `×2` 和 `¥398.00`。
 - 快速连点购买只产生 1 次 POST。
@@ -256,15 +330,17 @@ dist/assets/index-CCwSLHrO.js   124.31 kB │ gzip: 46.10 kB
 - `/products/1` 可直接打开，`/products/9999` 显示“商品不存在”。
 - 单独直接请求重复支付接口时返回 HTTP 409 和“订单已支付，请勿重复支付”；该接口保护不等于页面上仍可点击已支付订单的按钮。
 
-浏览器验证脚本放在临时目录，不在仓库内；仓库保留的是 Vitest 单元测试、构建配置和截图。
+浏览器验证脚本放在临时目录，不在仓库内；仓库保留的是 Vitest 单元测试、构建配置、CI 配置和截图。本轮的独立上架页、商品编号、来源字段、身份未核验、前端归属判断、路由优先级测试、全局 404、动态页面标题、下架禁购、描述字数限制和边界/错误单测已完成代码与自动化检查，但没有重新执行浏览器回归。
 
 ## 截图
 
-- [当前商品列表](screenshots/product-list-current.png)
-- [当前订单列表](screenshots/order-list-current.png)
-- [支付完成后的当前订单列表](screenshots/order-list-paid-current.png)
-- [发布表单校验](screenshots/product-form-empty-errors.png)
-- [发布成功](screenshots/product-form-success.png)
+以下截图来自此前浏览器会话；其中发布截图属于“商品列表内嵌发布表单”阶段，不含本轮拆分后的独立上架页。
+
+- [此前商品列表](screenshots/product-list-current.png)
+- [此前订单列表](screenshots/order-list-current.png)
+- [此前支付完成后的订单列表](screenshots/order-list-paid-current.png)
+- [拆分前的发布表单校验](screenshots/product-form-empty-errors.png)
+- [拆分前的发布成功反馈](screenshots/product-form-success.png)
 - [空筛选结果](screenshots/product-list-empty.png)
 - [商品详情](screenshots/product-detail.png)
 - [商品不存在](screenshots/product-detail-404.png)
@@ -274,9 +350,10 @@ dist/assets/index-CCwSLHrO.js   124.31 kB │ gzip: 46.10 kB
 ## 已知限制
 
 1. 下单成功后跳转订单页；返回商品列表时会重新拉取商品，但不会在离开前的列表实例上原地扣减库存。
-2. 当前自动化测试是 Vitest 单元测试，未提交组件级或完整 Playwright E2E 测试套件。
+2. 当前自动化测试是 Vitest 单元测试（工具函数、表单校验、商品归属、API 请求封装和路由匹配，共 7 个文件 67 个用例），未提交组件级或完整 Playwright E2E 测试套件。
 3. 搜索只过滤当前 `pageSize: 50` 的商品，没有分页控件、服务端搜索或输入防抖。
-4. 没有登录鉴权、图片上传、富文本编辑和退款流程。
+4. 没有真实登录鉴权、图片上传、富文本编辑和退款流程；当前只有明确标注的演示管理员会话和前端体验层权限判断。
 5. Mock 数据保存在内存中，重启服务或调用 `_reset` 会恢复初始数据。
 6. 使用 `createWebHistory()`，生产静态服务器需要配置 SPA History fallback，否则刷新 `/orders` 或 `/products/1` 可能 404；本地 Vite 开发服务器已正确处理。
 7. 标题清洗是展示层修复，不改动题目提供的 Mock 数据；生产环境仍应在服务端做输入校验，并继续使用 `{{ }}` 文本插值。
+8. 商品卡片中的“来源”只是 `sellerName` 展示字段，不是经过认证的卖家身份；缺少 `sellerId` 时会显示“身份未核验”。前端已用 `canManageProduct()` 控制管理按钮，但没有真实登录和服务端授权，不能把演示管理员当成权限隔离，详情见约束文档。

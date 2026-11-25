@@ -1,4 +1,6 @@
-const CONTROL_CHARACTERS = /[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g
+const CONTROL_CHARACTERS =
+  // eslint-disable-next-line no-control-regex -- 控制字符需要被主动清理
+  /[\u0000-\u001F\u007F-\u009F\u200B-\u200D\u2060\uFEFF]/g
 const HTML_BLOCK = /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi
 const HTML_TAG = /<[^>]*>/g
 

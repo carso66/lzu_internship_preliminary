@@ -1,28 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import OrderListView from '../views/OrderListView.vue'
-import ProductDetailView from '../views/ProductDetailView.vue'
-import ProductListView from '../views/ProductListView.vue'
+import { routes } from './routes.js'
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [
-    {
-      path: '/',
-      name: 'products',
-      component: ProductListView,
-    },
-    {
-      path: '/orders',
-      name: 'orders',
-      component: OrderListView,
-    },
-    {
-      path: '/products/:id',
-      name: 'product-detail',
-      component: ProductDetailView,
-    },
-  ],
+  routes,
   scrollBehavior: () => ({ top: 0 }),
+})
+
+router.afterEach((to) => {
+  const title = typeof to.meta.title === 'string' ? to.meta.title : '页面不存在'
+  document.title = `${title} · 校园好物市集`
 })
 
 export default router

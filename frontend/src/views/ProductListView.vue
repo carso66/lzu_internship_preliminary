@@ -2,12 +2,16 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { getProducts, updateProductStatus } from '../api/index.js'
 import ProductCard from '../components/ProductCard.vue'
-import ProductForm from '../components/ProductForm.vue'
+import { canManageProduct } from '../utils/permissions.js'
 import { normalizeProductTitle } from '../utils/product.js'
 
 const props = defineProps({
   orderingProductId: {
     type: [Number, String],
+    default: null,
+  },
+  session: {
+    type: Object,
     default: null,
   },
 })
@@ -24,6 +28,7 @@ const actionNoticeType = ref('success')
 
 let actionNoticeTimer = null
 let cancelled = false
+let loadRequestId = 0
 
 const filteredProducts = computed(() => {
   const query = keyword.value.trim().toLowerCase()
@@ -40,6 +45,10 @@ const viewState = computed(() => {
   if (filteredProducts.value.length === 0) return 'empty'
   return 'ready'
 })
+
+function canManage(product) {
+  return canManageProduct(product, props.session)
+}
 
 function clearFilter() {
   keyword.value = ''
@@ -78,6 +87,10 @@ function showActionNotice(message, type = 'success') {
 async function handleToggleStatus(product) {
   const id = product?.id
   if (id === undefined || id === null || isStatusUpdating(id)) return
+  if (!canManage(product)) {
+    showActionNotice('仅商品所有者或管理员可以变更商品状态', 'error')
+    return
+  }
 
   const nextStatus = product.status === 'on' ? 'off' : 'on'
   markStatusUpdating(id, true)
@@ -113,27 +126,26 @@ async function handleToggleStatus(product) {
   }
 }
 
-async function handleProductCreated() {
-  await loadProducts()
-}
-
 async function loadProducts() {
+  const currentRequestId = ++loadRequestId
   loading.value = true
   errorMessage.value = ''
 
   try {
     const data = await getProducts({ pageSize: 50 })
-    if (cancelled) return
+    if (cancelled || currentRequestId !== loadRequestId) return
     products.value = Array.isArray(data?.items) ? data.items : []
   } catch (error) {
-    if (cancelled) return
+    if (cancelled || currentRequestId !== loadRequestId) return
     products.value = []
     errorMessage.value =
       error instanceof Error && error.message
         ? error.message
         : '商品加载失败，请稍后重试'
   } finally {
-    if (!cancelled) loading.value = false
+    if (!cancelled && currentRequestId === loadRequestId) {
+      loading.value = false
+    }
   }
 }
 
@@ -141,6 +153,7 @@ onMounted(loadProducts)
 
 onUnmounted(() => {
   cancelled = true
+  loadRequestId += 1
   window.clearTimeout(actionNoticeTimer)
 })
 </script>
@@ -153,13 +166,21 @@ onUnmounted(() => {
           <p class="product-list-view__eyebrow">校园好物市集</p>
           <h1>商品列表</h1>
         </div>
-        <button
-          class="product-list-view__clear"
-          type="button"
-          @click="clearFilter"
-        >
-          清空筛选
-        </button>
+        <div class="product-list-view__heading-actions">
+          <RouterLink
+            class="product-list-view__create"
+            :to="{ name: 'product-create' }"
+          >
+            上架商品
+          </RouterLink>
+          <button
+            class="product-list-view__clear"
+            type="button"
+            @click="clearFilter"
+          >
+            清空筛选
+          </button>
+        </div>
       </div>
 
       <div class="product-list-view__search">
@@ -174,7 +195,9 @@ onUnmounted(() => {
       </div>
     </header>
 
-    <ProductForm @created="handleProductCreated" />
+    <p class="product-list-view__rules">
+      同名商品以商品编号区分；来源名称为展示信息，卖家身份未核验时仅供参考。
+    </p>
 
     <Transition name="action-notice">
       <p
@@ -221,6 +244,7 @@ onUnmounted(() => {
         :ordering="String(orderingProductId) === String(product.id)"
         :order-locked="orderingProductId !== null"
         :status-updating="isStatusUpdating(product.id)"
+        :can-manage="canManage(product)"
         @buy="handleBuy"
         @toggle-status="handleToggleStatus"
       />
@@ -263,6 +287,27 @@ onUnmounted(() => {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.product-list-view__heading-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+}
+
+.product-list-view__create {
+  padding: 9px 16px;
+  border-radius: 9px;
+  background: #18181b;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.product-list-view__create:hover {
+  background: #3f3f46;
 }
 
 .product-list-view__clear,
@@ -311,6 +356,13 @@ onUnmounted(() => {
 .product-list-view__search input:focus {
   border-color: #52525b;
   box-shadow: 0 0 0 3px rgb(82 82 91 / 12%);
+}
+
+.product-list-view__rules {
+  margin: -10px 0 20px;
+  color: #71717a;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .product-list-view__action-notice {

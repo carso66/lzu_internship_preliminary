@@ -27,7 +27,9 @@ const orderNo = computed(() => {
   return typeof value === 'string' && value.trim() ? value : '—'
 })
 
-const productTitle = computed(() => normalizeProductTitle(props.order?.productTitle))
+const productTitle = computed(() =>
+  normalizeProductTitle(props.order?.productTitle),
+)
 
 const quantity = computed(() => {
   const value = Number(props.order?.quantity)
@@ -104,9 +106,7 @@ function handlePay() {
           <option value="wechat">微信</option>
         </select>
       </div>
-      <p v-else-if="isPaid" class="order-card__paid-hint">
-        该订单已完成支付
-      </p>
+      <p v-else-if="isPaid" class="order-card__paid-hint">该订单已完成支付</p>
 
       <button
         class="order-card__pay"

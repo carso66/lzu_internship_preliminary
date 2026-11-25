@@ -1,9 +1,18 @@
 <script setup>
-import { onBeforeUnmount, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import { createProduct } from '../api/index.js'
 import { yuanToFen } from '../utils/money.js'
+import {
+  countCharacters,
+  PRODUCT_CATEGORIES,
+  validateProductForm,
+} from '../utils/productForm.js'
 
-const CATEGORIES = ['数码', '图书', '服饰', '食品', '文具']
+const CATEGORIES = PRODUCT_CATEGORIES
+
+const descriptionLength = computed(() =>
+  countCharacters(form.description.trim()),
+)
 
 const emit = defineEmits(['created'])
 
@@ -20,6 +29,7 @@ const errors = reactive({
   price: '',
   stock: '',
   category: '',
+  description: '',
 })
 
 const submitting = ref(false)
@@ -32,46 +42,12 @@ function clearFieldError(field) {
   submitError.value = ''
 }
 
-function countCharacters(value) {
-  return Array.from(value).length
-}
-
 function validateForm() {
-  errors.title = ''
-  errors.price = ''
-  errors.stock = ''
-  errors.category = ''
+  const result = validateProductForm(form)
+  Object.assign(errors, result.errors)
   submitError.value = ''
 
-  const title = form.title.trim()
-  const titleLength = countCharacters(title)
-  if (titleLength === 0) {
-    errors.title = '标题不能为空'
-  } else if (titleLength > 50) {
-    errors.title = '标题不能超过 50 个字'
-  }
-
-  const price = form.price.trim()
-  if (!price) {
-    errors.price = '价格不能为空'
-  } else if (!/^\d+(?:\.\d{1,2})?$/.test(price)) {
-    errors.price = '价格必须是大于 0 的数字，最多两位小数'
-  } else if (!(Number(price) > 0)) {
-    errors.price = '价格必须大于 0'
-  }
-
-  const stock = form.stock.trim()
-  if (!stock) {
-    errors.stock = '库存不能为空'
-  } else if (!/^\d+$/.test(stock) || Number(stock) > 999) {
-    errors.stock = '库存必须是 0~999 的整数'
-  }
-
-  if (!CATEGORIES.includes(form.category)) {
-    errors.category = '请选择有效的分类'
-  }
-
-  return !Object.values(errors).some(Boolean)
+  return result.valid
 }
 
 function resetForm() {
@@ -85,6 +61,8 @@ function resetForm() {
   errors.price = ''
   errors.stock = ''
   errors.category = ''
+  errors.description = ''
+  submitError.value = ''
 }
 
 function showToast(message) {
@@ -211,7 +189,11 @@ onBeforeUnmount(() => {
           aria-describedby="product-category-error"
           @change="clearFieldError('category')"
         >
-          <option v-for="category in CATEGORIES" :key="category" :value="category">
+          <option
+            v-for="category in CATEGORIES"
+            :key="category"
+            :value="category"
+          >
             {{ category }}
           </option>
         </select>
@@ -231,7 +213,26 @@ onBeforeUnmount(() => {
           v-model="form.description"
           rows="3"
           placeholder="补充商品成色、规格或使用说明（选填）"
+          :aria-invalid="Boolean(errors.description)"
+          aria-describedby="product-description-hint product-description-error"
+          @input="clearFieldError('description')"
         ></textarea>
+        <div class="product-form__field-meta">
+          <p
+            v-if="errors.description"
+            id="product-description-error"
+            class="product-form__field-error"
+          >
+            {{ errors.description }}
+          </p>
+          <span v-else id="product-description-hint">最多 200 字</span>
+          <span
+            class="product-form__count"
+            :class="{ 'product-form__count--over': descriptionLength > 200 }"
+          >
+            {{ descriptionLength }}/200
+          </span>
+        </div>
       </div>
     </div>
 
@@ -353,7 +354,8 @@ onBeforeUnmount(() => {
 }
 
 .product-form__field input[aria-invalid='true'],
-.product-form__field select[aria-invalid='true'] {
+.product-form__field select[aria-invalid='true'],
+.product-form__field textarea[aria-invalid='true'] {
   border-color: #ef4444;
   box-shadow: 0 0 0 3px rgb(239 68 68 / 10%);
 }
@@ -363,6 +365,29 @@ onBeforeUnmount(() => {
   color: #dc2626;
   font-size: 12px;
   line-height: 1.4;
+}
+
+.product-form__field-meta {
+  display: flex;
+  min-height: 17px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  color: #71717a;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.product-form__count {
+  flex: none;
+  margin-left: auto;
+  color: #71717a;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-form__count--over {
+  color: #dc2626;
+  font-weight: 700;
 }
 
 .product-form__submit-error {

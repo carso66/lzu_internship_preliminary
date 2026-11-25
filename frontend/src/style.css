@@ -1,6 +1,11 @@
 :root {
   font-family:
-    Inter, 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+    Inter,
+    'PingFang SC',
+    'Microsoft YaHei',
+    system-ui,
+    -apple-system,
+    sans-serif;
   color: #27272a;
   background: #f7f7f8;
   font-synthesis: none;
@@ -23,7 +28,11 @@ body {
   min-width: 320px;
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgb(251 146 60 / 8%), transparent 34rem),
+    radial-gradient(
+      circle at top left,
+      rgb(251 146 60 / 8%),
+      transparent 34rem
+    ),
     #f7f7f8;
 }
 

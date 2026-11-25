@@ -11,15 +11,21 @@ index.html
   └─ src/main.js
       ├─ src/style.css
       ├─ src/router/index.js
+      │   └─ src/router/routes.js
       └─ src/App.vue
           ├─ src/views/ProductListView.vue
-          │   ├─ src/components/ProductForm.vue
           │   └─ src/components/ProductCard.vue
+          ├─ src/views/ProductCreateView.vue
+          │   └─ src/components/ProductForm.vue
           ├─ src/views/ProductDetailView.vue
           ├─ src/views/OrderListView.vue
           │   └─ src/components/OrderCard.vue
+          ├─ src/views/NotFoundView.vue
           ├─ src/api/index.js
-          └─ src/utils/money.js / product.js
+          ├─ src/api/index.test.js
+          ├─ src/router/index.test.js
+          ├─ src/utils/money.js / product.js / quantity.js / productForm.js / permissions.js
+          └─ src/utils/money.test.js / product.test.js / quantity.test.js / productForm.test.js / permissions.test.js
 ```
 
 各层职责：
@@ -28,11 +34,11 @@ index.html
 |---|---|---|
 | 应用入口 | `src/main.js` | 创建 Vue 应用、注册路由、挂载 `#app` |
 | 全局壳层 | `src/App.vue` | 顶部导航、全局下单锁、订单刷新信号、全局 toast |
-| 路由 | `src/router/index.js` | URL 与页面组件映射 |
+| 路由 | `src/router/routes.js`、`src/router/index.js` | `routes.js` 维护 URL 与页面组件映射；`index.js` 创建路由实例、滚动复位、动态页面标题和 404 兜底 |
 | 页面 | `src/views/` | 发起数据请求、维护页面状态、组合组件 |
 | 业务组件 | `src/components/` | 展示和局部交互，通过 props/emits 与页面通信 |
-| API 层 | `src/api/index.js` | 基础地址、fetch、响应解析、导出接口函数 |
-| 工具层 | `src/utils/` | 金额换算、金额展示、标题清洗及单测 |
+| API 层 | `src/api/index.js` | 环境化基础地址、fetch、响应解析、导出接口函数；`index.test.js` 固化请求封装 |
+| 工具层 | `src/utils/` | 金额换算、金额展示、标题清洗、数量校验、表单校验、角色与商品归属判断及对应单测 |
 | Mock 服务 | `mock/server.mjs` | 只读模拟后端，提供业务接口和内存数据 |
 
 ## 2. 启动入口与路由接口
@@ -51,25 +57,33 @@ createApp(App).use(router).mount('#app')
 
 不在这里写业务请求、金额转换或页面状态。
 
-### 2.2 `src/router/index.js`
+### 2.2 `src/router/routes.js` 与 `src/router/index.js`
+
+路由表单独放在 `src/router/routes.js`，便于在 `src/router/index.test.js` 中无浏览器地验证静态路径与动态参数的匹配优先级。`src/router/index.js` 只负责创建 `createWebHistory()` 路由实例、滚动复位和更新标题。
 
 | 路径 | 路由名 | 组件 | 数据来源 |
 |---|---|---|---|
 | `/` | `products` | `ProductListView.vue` | `getProducts({ pageSize: 50 })` |
 | `/orders` | `orders` | `OrderListView.vue` | `getOrders()` |
+| `/products/new` | `product-create` | `ProductCreateView.vue` | 页面加载无请求；表单提交调用 `createProduct()` |
 | `/products/:id` | `product-detail` | `ProductDetailView.vue` | `getProduct(route.params.id)` |
+| `/:pathMatch(.*)*` | `not-found` | `NotFoundView.vue` | 无请求 |
 
-路由使用 `createWebHistory()`。直接访问详情页时，详情组件会自己读取 `route.params.id` 并请求数据，不依赖列表页传参。
+静态路径 `/products/new` 必须注册在 `/products/:id` 之前，否则 `new` 会被当作商品 ID。`index.test.js` 已固化 `/products/new`、`/products/42`、`/products/new/extra` 和未知路径四条边界。
+
+直接访问详情页时，详情组件会自己读取 `route.params.id` 并请求数据，不依赖列表页传参。每条路由通过 `meta.title` 设置标题，`router.afterEach()` 将 `document.title` 更新为 `${title} · 校园好物市集`；未知路径匹配 `not-found` 路由。
 
 ### 2.3 `src/App.vue`
 
 `App.vue` 是全局协调层：
 
-- 渲染顶部导航和 `RouterView`。
+- 渲染顶部导航（商品列表 / 上架商品 / 我的订单）和 `RouterView`。
+- 显示明确标注的“演示身份：管理员”；该身份不是认证结果。
 - 统一监听所有页面冒泡的 `buy` 事件。
 - 调用 `createOrder({ productId, quantity })`。
 - 下单成功后递增 `ordersRefreshKey`，跳转 `/orders`。
 - 用 `creatingOrder` 和 `orderingProductId` 锁定所有购买按钮。
+- 调用 `getQuantityError(quantity, product.stock)` 校验正整数、库存异常和库存上限，并拒绝 `status !== 'on'` 的下架商品。
 - 显示全局下单结果提示，3 秒后自动消失。
 
 传给路由页面的公共接口：
@@ -79,6 +93,7 @@ createApp(App).use(router).mount('#app')
   :is="Component"
   :ordering-product-id="orderingProductId"
   :refresh-key="ordersRefreshKey"
+  :session="productSession"
   @buy="handleBuy"
 />
 ```
@@ -87,7 +102,21 @@ createApp(App).use(router).mount('#app')
 |---|---|---|
 | `ordering-product-id` | `number \| string \| null` | 商品列表、商品详情，用于标出正在下单的商品 |
 | `refresh-key` | `number` | 订单列表，用于下单成功后重新加载订单 |
+| `session` | `object \| null` | 商品列表、商品详情；只有商品相关路由传演示会话，其他路由为 `null` |
 | `buy` | 事件 | `App.vue`，事件载荷为 `{ product, quantity }` |
+
+### 2.4 权限与演示会话
+
+`src/utils/permissions.js` 定义角色常量、角色中文名、演示会话和商品管理判定。当前 `App.vue` 只在商品列表和商品详情路由传入 `DEMO_SESSION`，用于展示和体验上下架权限，不用于登录或接口鉴权。
+
+| 角色 | 目标权限范围 | 当前实现 |
+|---|---|---|
+| 游客 | 浏览商品 | 无真实游客会话；页面可浏览 |
+| 买家 | 浏览、下单、支付、查看本人订单 | 下单/支付 UI 存在；订单归属未校验 |
+| 卖家 | 管理本人商品 | `canManageProduct()` 按 `sellerId` 精确匹配；缺少真实登录数据 |
+| 管理员 | 审核、强制下架、处理举报、查看审计日志 | 演示管理员可切换商品状态；其他管理能力未实现 |
+
+演示会话只控制前端按钮和提示。任何真实写操作都必须在服务端重新校验当前用户、角色和资源归属，不能信任客户端提交的 `role` 或 `sellerId`。
 
 ## 3. API 客户端接口
 
@@ -96,10 +125,12 @@ createApp(App).use(router).mount('#app')
 ### 3.1 基础地址
 
 ```js
-export const API_BASE_URL = 'http://127.0.0.1:3001/api'
+export const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL?.trim() || '/api'
+).replace(/\/+$/, '')
 ```
 
-Mock 端口变化时只改这一处。组件不得自行拼接接口域名。
+默认值为同源 `/api`，由 `vite.config.js` 的 `server.proxy` / `preview.proxy` 转发到 `http://127.0.0.1:3001`。需要覆盖时使用 `.env` 中的 `VITE_API_BASE_URL`；生产部署必须配置反向代理，或提供完整 API 地址。组件不得自行拼接接口域名。
 
 ### 3.2 内部请求函数
 
@@ -127,7 +158,7 @@ async function request(path, options = {})
 | `createProduct(payload)` | `POST /products` | JSON 商品字段 | 新建的 `Product` | `ProductForm` |
 | `updateProductStatus(id, status)` | `PATCH /products/:id/status` | `{ status: 'on' \| 'off' }` | `{ id, status }` | `ProductListView` |
 | `createOrder(payload)` | `POST /orders` | `{ productId, quantity }` | 新建的 `Order` | `App.vue` |
-| `getOrders()` | `GET /orders` | 无 | `{ total, page, pageSize, items }` | `OrderListView` |
+| `getOrders()` | `GET /orders?pageSize=50` | 固定 `pageSize=50` | `{ total, page, pageSize, items }` | `OrderListView` |
 | `createPayment({ orderId, method })` | `POST /payments` | `{ orderId, method }` | 支付单对象，状态通常为 `processing` | `OrderListView` |
 | `getPayment(paymentId)` | `GET /payments/:paymentId` | 路径参数 | 支付单对象，状态为 `processing` 或 `paid` | `OrderListView` |
 
@@ -145,9 +176,11 @@ async function request(path, options = {})
   price: number,          // 整数分，必须由 yuanToFen() 转换
   stock: number,          // 0~999 的整数
   category: string,       // 数码 / 图书 / 服饰 / 食品 / 文具
-  description: string     // 可为空，Mock 限制最多 200 字
+  description: string     // 可为空；表单与 Mock 均限制最多 200 字
 }
 ```
+
+当前 `createProduct()` 不提交 `sellerId` 或 `sellerName`。Mock 会把新商品的 `sellerName` 固定写为“我”，且不生成 `sellerId`，所以前端只能显示“身份未核验”。真实后端应从会话推导卖家身份并写入服务端数据，不能接受客户端伪造卖家编号。
 
 ### 3.5 `createOrder()` 请求体
 
@@ -186,6 +219,8 @@ try {
 }
 ```
 
+- 错误分支（业务 code 非 0、HTTP 非 2xx、空响应/非 JSON、网络错误）已由 `src/api/index.test.js` 覆盖，修改请求封装时需同步更新。
+
 页面必须把 `message` 展示给用户，不能让错误只停留在 Console。
 
 ## 4. 数据结构
@@ -194,14 +229,17 @@ try {
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `id` | number | 商品 ID |
-| `title` | string | 商品标题；展示前经过 `normalizeProductTitle()` |
+| `id` | number | 商品唯一编号；同名商品靠它区分，不能把标题当唯一键 |
+| `title` | string | 商品标题；只是搜索和展示字段，展示前经过 `normalizeProductTitle()` |
 | `price` | number | 单价，整数分 |
 | `stock` | number | 库存，0~999 |
 | `category` | string | 五种分类之一 |
 | `status` | `'on' \| 'off'` | 在售 / 已下架 |
-| `sellerName` | string | 卖家名称 |
+| `sellerId` | `number \| string \| undefined` | 可选卖家用户 ID；卖家管理权限只按该字段与当前用户 ID 是否一致判断。当前 Mock 数据和新发布商品均没有该字段 |
+| `sellerName` | string | 卖家展示名称；缺失时卡片和详情显示“匿名卖家”。没有有效 `sellerId` 时界面显示“身份未核验”；该字段不是认证身份，也不能作为权限依据 |
 | `description` | string | 商品描述 |
+
+商品标题可以重复，`id` 才是列表项和数据记录的唯一身份。多个卖家发布同名商品时，应当保留为多条独立 listing，并分别展示商品编号、卖家来源、价格、库存和状态，而不是按标题合并。
 
 ### 4.2 `Order`
 
@@ -250,8 +288,8 @@ try {
 
 | 函数 | 签名 | 行为 |
 |---|---|---|
-| `yuanToFen` | `yuanToFen(yuan) -> number` | 元字符串/数字转整数分；空值和非法数字抛错；内部使用 `Math.round(Number(raw) * 100)` |
-| `fenToYuan` | `fenToYuan(fen) -> string` | 分转固定两位小数的元字符串；非有限数字按 0 处理 |
+| `yuanToFen` | `yuanToFen(yuan) -> number` | 元字符串/数字转整数分；空值抛“金额不能为空”，非字符串/数字抛格式错误；只接受 `/^[0-9]+(?:\.[0-9]{1,2})?$/`，零/负数抛“金额必须大于 0”，超安全整数抛“金额超出可处理范围”；内部使用 `Math.round(Number(raw) * 100)` |
+| `fenToYuan` | `fenToYuan(fen) -> string` | 分转固定两位小数的元字符串；非有限数或负数按 0 兜底 |
 | `formatPrice` | `formatPrice(fen) -> string` | 返回 `¥${fenToYuan(fen)}` |
 
 示例：
@@ -280,11 +318,56 @@ normalizeProductTitle(value, fallback = '未命名商品') -> string
 
 该函数只用于展示，不修改接口返回的原始商品数据。模板仍必须使用 `{{ }}`。
 
+### 5.3 `src/utils/quantity.js`
+
+```js
+getQuantityError(quantity, stock) -> string
+```
+
+- 返回空字符串表示校验通过；返回中文错误文案表示不可提交。
+- `quantity` 只接受 `>=1` 的安全整数；字符串只接受 `/^[0-9]+$/`，拒绝 `'1e2'`、`'0x10'`、`'+1'`、`'1.0'`、`true`、数组和对象。
+- `stock` 数字需有限且 `>=0` 后向下取整；字符串只接受十进制数字/小数并向下取整，拒绝 `null`、空串、负数、`NaN` 和 `Infinity`。
+- 数量不能超过向下取整后的库存；库存为 0 时，任何正数都返回超库存错误。
+- 错误文案保持 `购买数量必须是正整数` / `商品库存信息异常` / `购买数量不能超过库存（N 件）`。
+- `App.vue` 在全局下单入口调用它；`quantity.test.js` 固化脏类型、科学计数法、安全整数、字符串库存、超库存、零库存和异常库存规则。
+
+### 5.4 `src/utils/productForm.js`
+
+```js
+PRODUCT_CATEGORIES -> string[]
+countCharacters(value) -> number
+validateProductForm(form) -> { valid: boolean, errors: Record<string, string> }
+```
+
+- `PRODUCT_CATEGORIES` 固定为 5 项：数码、图书、服饰、食品、文具。
+- `countCharacters` 按 Unicode 码点计数，避免 emoji 等代理对字符被拆成两个长度。
+- `validateProductForm` 集中校验标题（1~50 字）、价格（>0 且最多两位小数）、库存（0~999 整数）、分类和描述（最多 200 字），返回 `valid` 与各字段错误文案。
+- `ProductForm.vue` 引用该模块；`productForm.test.js` 固化 emoji 码点、标题/价格/库存/描述边界。
+
+### 5.5 `src/utils/permissions.js`
+
+```js
+USER_ROLES // { visitor, buyer, seller, admin }
+ROLE_LABELS // 角色中文名
+DEMO_SESSION // { id: 'demo-admin', name: '演示管理员', role: 'admin', isDemo: true }
+canManageProduct(product, session) -> boolean
+```
+
+`canManageProduct()` 规则：
+
+- 无会话、会话缺少有效用户 ID、游客或买家：拒绝。
+- 管理员：可管理任意商品。
+- 卖家：仅当商品存在有效 `sellerId`，且与 `session.id` 完全一致时允许；数字 `42` 和字符串 `'42'` 视为同一 ID。
+- `sellerId` 缺失、空白，或只有同名 `sellerName`：拒绝。
+- 函数只用于前端体验控制；服务端必须重新执行同样的归属校验。
+
+`permissions.test.js` 固化无会话、游客/买家、卖家本人/他人、数字字符串 ID、同名不同人、空 `sellerId`、管理员和演示会话九组边界。
+
 ## 6. 业务组件接口
 
 ### 6.1 `ProductForm.vue`
 
-职责：商品发布表单、字段校验、元转分、提交锁和成功反馈。
+职责：商品发布表单、字段校验、元转分、提交锁和组件内成功提示。页面级成功反馈由父组件 `ProductCreateView.vue` 负责。
 
 **Props**：无。
 
@@ -299,10 +382,10 @@ normalizeProductTitle(value, fallback = '未命名商品') -> string
 | 状态 | 作用 |
 |---|---|
 | `form` | 标题、价格、库存、分类、描述 |
-| `errors` | 四个字段各自的错误文案 |
+| `errors` | 标题、价格、库存、分类、描述五个字段各自的错误文案 |
 | `submitting` | 提交锁，防止重复 POST |
 | `submitError` | 后端或网络错误提示 |
-| `toastMessage` | 成功 toast |
+| `toastMessage` | 组件内“商品发布成功” toast；不负责父页面刷新 |
 
 校验规则：
 
@@ -310,12 +393,14 @@ normalizeProductTitle(value, fallback = '未命名商品') -> string
 - 价格：必填、匹配最多两位小数、数值大于 0。
 - 库存：必填、非负整数、最大 999。
 - 分类：必须属于固定五项。
+- 描述：选填，去除首尾空白后最多 200 个 Unicode 字符，并实时显示 `x/200`。
 - 校验失败时不发送请求。
+- 校验规则由 `src/utils/productForm.js` 的 `validateProductForm()` 集中提供，`ProductForm.vue` 只负责绑定表单与展示错误。
 
 父组件接入方式：
 
 ```vue
-<ProductForm @created="handleProductCreated" />
+<ProductForm @created="handleCreated" />
 ```
 
 ### 6.2 `ProductCard.vue`
@@ -330,20 +415,26 @@ normalizeProductTitle(value, fallback = '未命名商品') -> string
 | `ordering` | Boolean | `false` | 当前商品是否正在下单 |
 | `orderLocked` | Boolean | `false` | 是否有其它下单请求正在进行 |
 | `statusUpdating` | Boolean | `false` | 当前商品上下架请求是否进行中 |
+| `canManage` | Boolean | `false` | 当前会话是否有权管理该商品；无权限时上下架按钮禁用 |
 
 **Emits**：
 
 | 事件 | 载荷 | 触发时机 |
 |---|---|---|
 | `buy` | `{ product, quantity }` | 点击购买且库存、锁状态允许 |
-| `toggle-status` | `product` | 点击上架/下架 |
+| `toggle-status` | `product` | 点击上架/下架；仅在 `canManage === true` 且不在请求中时触发 |
 
 内部行为：
 
 - `quantity` 默认 1，并随库存变化自动限制在有效范围。
+- `canBuy = status === 'on' && !soldOut`；下架或缺货时禁用数量输入和购买按钮，下架文案为“已下架”。
+- 下架商品的标题仍可进入详情页，详情页继续执行自身的禁购判断。
 - 零库存时显示“缺货”、卡片灰化并禁用购买。
 - 标题经 `normalizeProductTitle()` 清洗，CSS 负责单行省略。
 - 金额仅通过 `formatPrice(product.price)` 展示。
+- 元信息展示商品编号、库存、分类和“来源”；商品编号来自 `id`，同名商品靠它区分。
+- 来源取 `sellerName`，缺失或空白时显示“匿名卖家”；没有有效 `sellerId` 时额外显示“身份未核验”。该字段只用于展示，不证明卖家身份。
+- 没有管理权限时按钮文案为“无管理权限”并禁用；点击处理函数内部也会再次检查 `canManage`，不能只依赖按钮的 disabled 状态。
 
 ### 6.3 `OrderCard.vue`
 
@@ -379,6 +470,7 @@ normalizeProductTitle(value, fallback = '未命名商品') -> string
 | Prop | 类型 | 作用 |
 |---|---|---|
 | `orderingProductId` | `number \| string \| null` | 标识正在下单的商品 |
+| `session` | `object \| null` | 当前前端会话；用于计算每个商品的管理权限 |
 
 **Emits**：
 
@@ -392,17 +484,33 @@ normalizeProductTitle(value, fallback = '未命名商品') -> string
 - 从 `data.items` 读取列表。
 - 按标题做前端筛选。
 - 维护互斥的 loading/error/empty/ready 状态。
-- 调用 `updateProductStatus()`，并用 `statusUpdatingIds` 做商品级锁。
-- 收到 `ProductForm` 的 `created` 后重新加载商品。
+- 每次加载递增 `loadRequestId`，只允许最新请求回写；卸载时递增 ID，使在途请求失效。
+- 请求前调用 `canManageProduct(product, props.session)`，再用 `statusUpdatingIds` 做商品级锁；无权限时提示“仅商品所有者或管理员可以变更商品状态”。
+- 向 `ProductCard` 传递 `can-manage`，并显示“同名商品以商品编号区分；来源名称为展示信息”的说明。
+- 标题区提供进入 `/products/new` 的“上架商品”入口；列表页不再嵌入发布表单。
 - 组件卸载时设置 `cancelled`，阻止旧请求回写。
 
-### 7.2 `ProductDetailView.vue`
+### 7.2 `ProductCreateView.vue`
+
+**Props**：无。
+
+**Emits**：无；仅接收 `ProductForm` 的 `created` 事件。
+
+职责：
+
+- 承载独立 `/products/new` 页面，渲染 `ProductForm`。
+- 收到新商品后保存到 `createdProduct`，展示清洗后的标题、商品 ID、“查看详情”和“继续上架”。
+- “查看详情”跳转 `product-detail` 路由；“继续上架”只收起成功提示，表单已由 `ProductForm` 自行重置。
+- 不通知 `ProductListView` 刷新，也不直接调用商品列表接口；之后进入列表页时由列表页重新请求。
+
+### 7.3 `ProductDetailView.vue`
 
 **Props**：
 
 | Prop | 类型 | 作用 |
 |---|---|---|
 | `orderingProductId` | `number \| string \| null` | 标识当前详情商品是否正在下单 |
+| `session` | `object \| null` | 当前前端会话；用于生成管理权限提示 |
 
 **Emits**：
 
@@ -416,9 +524,11 @@ normalizeProductTitle(value, fallback = '未命名商品') -> string
 - 使用递增 `requestId` 丢弃旧请求响应。
 - 不存在或请求失败时显示“商品不存在”或后端 message。
 - 下架或缺货时禁用购买。
+- 元信息显示商品编号、卖家名称及“卖家编号 xxx”或“身份未核验”；同名商品以商品编号区分。
+- `sellerName` 不参与权限判断；权限提示由 `canManageProduct(product, session)` 得出，并明确真实权限仍须服务端校验。
 - 组件卸载时递增 `requestId`，使在途请求失效。
 
-### 7.3 `OrderListView.vue`
+### 7.4 `OrderListView.vue`
 
 **Props**：
 
@@ -430,9 +540,10 @@ normalizeProductTitle(value, fallback = '未命名商品') -> string
 
 职责：
 
-- 挂载时调用 `getOrders()`，兼容 `data.items` 和直接数组。
+- 挂载时调用 `getOrders()`，实际请求 `/orders?pageSize=50`，兼容 `data.items` 和直接数组。
+- 每次订单加载递增 `loadRequestId`，旧响应不能覆盖新结果；卸载时使在途请求失效。
 - 处理支付宝/微信支付创建与状态轮询。
-- 管理 `pollTimer`、`pollToken`、`cancelled` 和 `requestInFlight`。
+- 管理 `pollTimer`、`pollToken`、`cancelled`、`loadRequestId` 和 `requestInFlight`。
 - 支付成功后原地将订单状态改为 `paid`。
 - 组件卸载时设置 `cancelled = true`，并调用 `stopPolling()`。
 
@@ -443,8 +554,9 @@ normalizeProductTitle(value, fallback = '未命名商品') -> string
 ```text
 ProductListView onMounted
   -> getProducts({ pageSize: 50 })
+  -> 记录 loadRequestId
   -> request() 解包 data
-  -> data.items
+  -> 仅最新请求可写回 data.items
   -> filteredProducts
   -> ProductCard
 ```
@@ -458,24 +570,40 @@ ProductForm submit
   -> createProduct(payload)
   -> 成功后 resetForm()
   -> emit('created', product)
-  -> ProductListView.handleProductCreated()
-  -> loadProducts()
+  -> ProductCreateView.handleCreated(product)
+  -> 展示新商品标题、ID、详情入口和继续上架
 ```
 
-### 8.3 选择数量并下单
+### 8.3 商品上下架与前端权限判断
+
+```text
+ProductCard 点击上架/下架
+  -> 检查 canManage
+  -> ProductListView.handleToggleStatus()
+  -> canManageProduct(product, session)
+  -> 无权限：显示错误提示，不发请求
+  -> 有权限：statusUpdatingIds 加锁
+  -> updateProductStatus(id, nextStatus)
+  -> 成功后只更新对应商品状态
+```
+
+当前演示管理员因此可以操作全部商品。卖家分支虽然已有单测，但没有真实登录、服务端会话和 Mock `sellerId`，尚未构成真实权限隔离。
+
+### 8.4 选择数量并下单
 
 ```text
 ProductCard / ProductDetailView
   -> emit('buy', { product, quantity })
   -> ProductListView / ProductDetailView 转发
   -> App.handleBuy()
-  -> 校验并锁定 creatingOrder
+  -> getQuantityError(quantity, product.stock)
+  -> 拒绝下架商品并锁定 creatingOrder
   -> createOrder({ productId, quantity })
   -> ordersRefreshKey += 1
   -> router.push('/orders')
 ```
 
-### 8.4 支付轮询
+### 8.5 支付轮询
 
 ```text
 OrderCard emit('pay', { orderId, method })
@@ -487,6 +615,17 @@ OrderCard emit('pay', { orderId, method })
   -> processing：继续等待
   -> paid：stopPolling + 更新订单为 paid
   -> 10 次仍未确认：停止并提示
+```
+
+### 8.6 订单列表加载
+
+```text
+OrderListView onMounted / refreshKey 变化
+  -> 递增 loadRequestId
+  -> getOrders() = GET /orders?pageSize=50
+  -> request() 解包 data
+  -> 仅最新请求可写回 data.items
+  -> 渲染 OrderCard
 ```
 
 ## 9. Mock 接口索引
@@ -528,11 +667,12 @@ OrderCard emit('pay', { orderId, method })
 
 ### 10.3 新增页面路由
 
-1. 在 `src/router/index.js` 增加路径和命名路由。
-2. 页面自行请求所需数据，支持直接打开 URL。
+1. 在 `src/router/routes.js` 增加路径和命名路由；`src/router/index.js` 只保留路由实例和全局钩子。
+2. 页面自行请求所需数据，支持直接打开 URL；静态路径必须排在可能吞掉它的动态参数路由之前。
 3. 在 `src/App.vue` 判断导航激活状态。
-4. 在本文路由表和 README 页面表中同步说明。
-5. 验证刷新、直接访问和不存在数据三种情况。
+4. 在 `src/router/index.test.js` 增加静态/动态路径优先级与 404 用例。
+5. 在本文路由表和 README 页面表中同步说明，并设置 `meta.title`。
+6. 验证刷新、直接访问、未知路径 404 和浏览器标题。
 
 ### 10.4 修改金额或订单字段
 
@@ -540,7 +680,7 @@ OrderCard emit('pay', { orderId, method })
 2. 修改 `money.js` 时同步更新 `money.test.js`。
 3. 检查所有调用方，禁止局部出现 `price / 100` 或裸 `toFixed`。
 4. 修改订单字段时同步 `OrderCard.vue`、订单页、Mock 字段核对和本文数据结构。
-5. 执行 `npm test`、`npm run build` 和关键浏览器流程。
+5. 执行 `npm run check` 和关键浏览器流程。
 
 ### 10.5 修改支付状态机
 
@@ -554,16 +694,20 @@ OrderCard emit('pay', { orderId, method })
 
 | 修改位置 | 必须连带检查 |
 |---|---|
-| `src/api/index.js` | 调用页面、错误提示、本文 API 表、Mock 字段 |
+| `src/api/index.js` | 调用页面、错误提示、`index.test.js`、本文 API 表、Mock 字段 |
 | `src/utils/money.js` | `money.test.js`、表单、卡片、详情、订单卡片 |
 | `src/utils/product.js` | `product.test.js`、列表、详情、订单卡片 |
-| `ProductCard` props/emits | `ProductListView` 模板、本文组件接口 |
-| `ProductForm` emits | `ProductListView` 刷新逻辑、本文组件接口 |
+| `src/utils/quantity.js` | `quantity.test.js`、`App.vue`、商品卡片/详情页禁购与数量边界 |
+| `src/utils/productForm.js` | `productForm.test.js`、`ProductForm.vue` 的字段校验与字数展示 |
+| `src/utils/permissions.js` | `permissions.test.js`、`App.vue` 的演示会话、`ProductListView` / `ProductDetailView` 的权限提示 |
+| `ProductCard` props/emits、商品编号与来源展示 | `ProductListView` 的 `can-manage`、本文组件接口、匿名卖家与身份未核验兜底、`permissions.test.js` |
+| `ProductForm` emits | `ProductCreateView` 成功反馈、本文组件接口 |
 | `OrderCard` props/emits | `OrderListView` 模板、本文组件接口 |
-| `ProductListView` props | `App.vue`、本文页面接口 |
+| `ProductListView` / `ProductCreateView` props 与职责 | `App.vue`、本文页面接口、独立上架入口 |
 | `OrderListView` props | `App.vue` 的 `refreshKey`、本文页面接口 |
-| 路由 | `App.vue` 导航、README、本文路由表 |
+| 路由 / `meta.title` | `routes.js`、`index.js`、`router/index.test.js`、`App.vue` 导航、README、本文路由表、404 页面 |
 | 轮询状态 | `OrderListView`、约束文档、测试/浏览器验证记录 |
+| ESLint / Prettier / CI | `package.json`、配置文件、`.github/workflows/frontend-ci.yml`、README/SUBMISSION 验证记录 |
 
 ## 12. 开发完成检查
 
@@ -573,5 +717,7 @@ OrderCard emit('pay', { orderId, method })
 - [ ] props/emits 变更已同步到本文和调用方。
 - [ ] 页面状态仍然互斥，错误有可见提示。
 - [ ] 异步请求有失败恢复和卸载保护。
-- [ ] `npm test` 与 `npm run build` 通过。
+- [ ] 所有前端管理权限判断都使用 `canManageProduct()`，没有按 `sellerName` 或标题判定归属。
+- [ ] 真实写操作已在服务端规划归属校验；没有把演示管理员描述成真实登录。
+- [ ] `npm run check`（Lint、格式、测试、构建）通过。
 - [ ] `mock/` 未被修改。

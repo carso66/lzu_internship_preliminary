@@ -1,10 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import {
-  createPayment,
-  getOrders,
-  getPayment,
-} from '../api/index.js'
+import { createPayment, getOrders, getPayment } from '../api/index.js'
 import OrderCard from '../components/OrderCard.vue'
 
 const POLL_INTERVAL_MS = 1000
@@ -26,6 +22,7 @@ const notice = ref(null)
 let pollTimer = null
 let pollToken = 0
 let cancelled = false
+let loadRequestId = 0
 
 const viewState = computed(() => {
   if (loading.value) return 'loading'
@@ -43,12 +40,13 @@ function closeNotice() {
 }
 
 async function loadOrders() {
+  const currentRequestId = ++loadRequestId
   loading.value = true
   errorMessage.value = ''
 
   try {
     const data = await getOrders()
-    if (cancelled) return
+    if (cancelled || currentRequestId !== loadRequestId) return
 
     // mock/server.mjs 的 GET /api/orders 返回 { total, page, pageSize, items }。
     // 同时兼容 getOrders() 未来直接返回数组的情况。
@@ -58,14 +56,16 @@ async function loadOrders() {
         ? data
         : []
   } catch (error) {
-    if (cancelled) return
+    if (cancelled || currentRequestId !== loadRequestId) return
     orders.value = []
     errorMessage.value =
       error instanceof Error && error.message
         ? error.message
         : '订单加载失败，请稍后重试'
   } finally {
-    if (!cancelled) loading.value = false
+    if (!cancelled && currentRequestId === loadRequestId) {
+      loading.value = false
+    }
   }
 }
 
@@ -79,9 +79,7 @@ function stopPolling() {
 }
 
 function markOrderPaid(orderId) {
-  const order = orders.value.find(
-    (item) => String(item.id) === String(orderId),
-  )
+  const order = orders.value.find((item) => String(item.id) === String(orderId))
   if (!order) return
 
   order.status = 'paid'
@@ -188,6 +186,7 @@ onUnmounted(() => {
   // 关键：离开页面先标记已销毁，再清理唯一的活动定时器。
   // 这样已经在途的 GET /payments 返回后也不会再 setState 或继续轮询。
   cancelled = true
+  loadRequestId += 1
   stopPolling()
 })
 </script>
@@ -258,7 +257,9 @@ onUnmounted(() => {
         :key="order.id"
         :order="order"
         :paying="String(payingOrderId) === String(order.id)"
-        :payment-locked="payingOrderId !== null && String(payingOrderId) !== String(order.id)"
+        :payment-locked="
+          payingOrderId !== null && String(payingOrderId) !== String(order.id)
+        "
         @pay="handlePay"
       />
     </section>

@@ -2,6 +2,8 @@
 import { computed, onUnmounted, ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { createOrder } from './api/index.js'
+import { DEMO_SESSION, ROLE_LABELS } from './utils/permissions.js'
+import { getQuantityError } from './utils/quantity.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -9,12 +11,20 @@ const creatingOrder = ref(false)
 const orderingProductId = ref(null)
 const ordersRefreshKey = ref(0)
 const appNotice = ref('')
+const demoSession = DEMO_SESSION
+const demoRoleLabel = ROLE_LABELS[demoSession.role] ?? '未知角色'
 let noticeTimer = null
 
 const isProductsActive = computed(
   () => route.name === 'products' || route.name === 'product-detail',
 )
+const isCreateActive = computed(() => route.name === 'product-create')
 const isOrdersActive = computed(() => route.name === 'orders')
+const productSession = computed(() =>
+  route.name === 'products' || route.name === 'product-detail'
+    ? demoSession
+    : null,
+)
 
 function showNotice(message) {
   appNotice.value = message
@@ -35,8 +45,14 @@ async function handleBuy(payload) {
     return
   }
 
-  if (!Number.isInteger(quantity) || quantity <= 0) {
-    showNotice('购买数量必须是正整数')
+  const quantityError = getQuantityError(quantity, product.stock)
+  if (quantityError) {
+    showNotice(quantityError)
+    return
+  }
+
+  if (product.status !== 'on') {
+    showNotice('商品已下架，暂不可购买')
     return
   }
 
@@ -71,7 +87,15 @@ onUnmounted(() => {
 <template>
   <div class="app-shell">
     <nav class="app-nav" aria-label="主导航">
-      <span class="app-nav__brand">校园好物市集</span>
+      <div class="app-nav__identity">
+        <span class="app-nav__brand">校园好物市集</span>
+        <span
+          class="app-nav__session"
+          title="前端演示身份，不代表真实登录或服务端授权"
+        >
+          演示身份：{{ demoRoleLabel }}
+        </span>
+      </div>
       <div class="app-nav__links">
         <RouterLink
           :to="{ name: 'products' }"
@@ -79,6 +103,13 @@ onUnmounted(() => {
           :aria-current="isProductsActive ? 'page' : undefined"
         >
           商品列表
+        </RouterLink>
+        <RouterLink
+          :to="{ name: 'product-create' }"
+          :class="{ 'app-nav__link--active': isCreateActive }"
+          :aria-current="isCreateActive ? 'page' : undefined"
+        >
+          上架商品
         </RouterLink>
         <RouterLink
           :to="{ name: 'orders' }"
@@ -95,6 +126,7 @@ onUnmounted(() => {
         :is="Component"
         :ordering-product-id="orderingProductId"
         :refresh-key="ordersRefreshKey"
+        :session="productSession"
         @buy="handleBuy"
       />
     </RouterView>
@@ -126,11 +158,29 @@ onUnmounted(() => {
   backdrop-filter: blur(14px);
 }
 
+.app-nav__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
 .app-nav__brand {
   color: #18181b;
   font-size: 16px;
   font-weight: 800;
   letter-spacing: -0.01em;
+}
+
+.app-nav__session {
+  padding: 3px 8px;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .app-nav__links {
@@ -192,6 +242,12 @@ onUnmounted(() => {
     flex-direction: column;
     gap: 8px;
     padding: 12px 14px;
+  }
+}
+@media (max-width: 560px) {
+  .app-nav__identity,
+  .app-nav__links {
+    flex-wrap: wrap;
   }
 }
 </style>

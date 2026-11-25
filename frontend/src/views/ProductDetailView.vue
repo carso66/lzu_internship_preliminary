@@ -3,11 +3,16 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { getProduct } from '../api/index.js'
 import { formatPrice } from '../utils/money.js'
+import { canManageProduct, USER_ROLES } from '../utils/permissions.js'
 import { normalizeProductTitle } from '../utils/product.js'
 
 const props = defineProps({
   orderingProductId: {
     type: [Number, String],
+    default: null,
+  },
+  session: {
+    type: Object,
     default: null,
   },
 })
@@ -36,13 +41,9 @@ const stock = computed(() => {
 
 const soldOut = computed(() => stock.value === 0)
 
-const status = computed(() =>
-  product.value?.status === 'on' ? 'on' : 'off',
-)
+const status = computed(() => (product.value?.status === 'on' ? 'on' : 'off'))
 
-const statusText = computed(() =>
-  status.value === 'on' ? '在售' : '已下架',
-)
+const statusText = computed(() => (status.value === 'on' ? '在售' : '已下架'))
 
 const category = computed(() => {
   const value = product.value?.category
@@ -51,7 +52,36 @@ const category = computed(() => {
 
 const sellerName = computed(() => {
   const value = product.value?.sellerName
-  return typeof value === 'string' && value.trim() ? value : '匿名卖家'
+  return typeof value === 'string' && value.trim() ? value.trim() : '匿名卖家'
+})
+
+const sellerId = computed(() => {
+  const value = product.value?.sellerId
+  return value === undefined || value === null || String(value).trim() === ''
+    ? ''
+    : String(value).trim()
+})
+
+const productId = computed(() => {
+  const value = product.value?.id
+  return value === undefined || value === null || String(value).trim() === ''
+    ? '未知'
+    : String(value)
+})
+
+const sellerStateText = computed(() =>
+  sellerId.value ? `卖家编号 ${sellerId.value}` : '身份未核验',
+)
+
+const managementHint = computed(() => {
+  if (!product.value) return ''
+  if (!canManageProduct(product.value, props.session)) {
+    return '当前会话没有该商品的管理权限。'
+  }
+
+  return props.session?.role === USER_ROLES.admin
+    ? '当前为演示管理员，可管理全部商品；真实权限仍须由服务端校验。'
+    : '当前为商品卖家，可管理本人商品；真实权限仍须由服务端校验。'
 })
 
 const title = computed(() => normalizeProductTitle(product.value?.title))
@@ -61,9 +91,7 @@ const description = computed(() => {
   return typeof value === 'string' && value.trim() ? value : '暂无描述'
 })
 
-const canBuy = computed(
-  () => status.value === 'on' && !soldOut.value,
-)
+const canBuy = computed(() => status.value === 'on' && !soldOut.value)
 
 const isOrdering = computed(
   () => String(props.orderingProductId) === String(product.value?.id),
@@ -174,6 +202,10 @@ onUnmounted(() => {
 
       <dl class="product-detail__meta">
         <div>
+          <dt>商品编号</dt>
+          <dd>{{ productId }}</dd>
+        </div>
+        <div>
           <dt>库存</dt>
           <dd>{{ stock }}</dd>
         </div>
@@ -183,9 +215,18 @@ onUnmounted(() => {
         </div>
         <div>
           <dt>卖家</dt>
-          <dd>{{ sellerName }}</dd>
+          <dd class="product-detail__seller">
+            <span>{{ sellerName }}</span>
+            <span class="product-detail__seller-state">
+              {{ sellerStateText }}
+            </span>
+          </dd>
         </div>
       </dl>
+
+      <p class="product-detail__identity-note">
+        {{ managementHint }} 同名商品请以商品编号区分；来源名称不代表平台认证。
+      </p>
 
       <span v-if="soldOut" class="product-detail__sold-out">缺货</span>
 
@@ -378,6 +419,29 @@ onUnmounted(() => {
   color: #3f3f46;
   font-size: 14px;
   font-weight: 700;
+}
+
+.product-detail__seller {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.product-detail__seller-state {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f4f4f5;
+  color: #71717a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.product-detail__identity-note {
+  margin: 16px 0 0;
+  color: #71717a;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .product-detail__sold-out {
