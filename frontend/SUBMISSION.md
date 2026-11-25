@@ -10,9 +10,9 @@
 | 分支 | 320250946851 |
 | 实际投入 | 8h |
 | PR 标题 | `[FE] 李宓辰 320250946851` |
-| PR 地址 | 待本人填写 |
+| PR 地址 | `https://github.com/carso66/lzu_internship_preliminary/pull/24` |
 | PR 目标分支 | `320250946851` |
-| PR 状态 | 提交后确认 `Able to merge` |
+| PR 状态 | `Able to merge`（GitHub 显示“能够合并”） |
 
 以上个人信息由本人最终确认；实际投入按真实情况记录。
 
