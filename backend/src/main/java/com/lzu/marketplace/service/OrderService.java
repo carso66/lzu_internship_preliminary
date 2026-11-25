@@ -106,9 +106,18 @@ public class OrderService {
             throw badRequest("订单总金额超出范围");
         }
 
-        // 带条件的扣减：并发下只有真正扣到库存的请求才继续，避免超卖
+        // 带条件的扣减：并发下只有真正扣到库存的请求才继续，避免超卖。
+        // 条件里同时要求 status = 'on'，防止「查完商品后被别人下架」的中间态漏进来。
         int deducted = productMapper.deductStock(productId, quantity);
         if (deducted == 0) {
+            // 没扣到：可能库存被别人抢走了，也可能刚好被下架，重新读一次给出准确原因
+            Product latest = productMapper.findById(productId);
+            if (latest == null) {
+                throw new BusinessException(40401, 404, "商品不存在");
+            }
+            if (!"on".equals(latest.getStatus())) {
+                throw new BusinessException(40902, 409, "商品已下架");
+            }
             throw new BusinessException(40901, 409, "库存不足");
         }
 

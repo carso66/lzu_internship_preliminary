@@ -6,7 +6,9 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -34,6 +36,14 @@ public interface OrderMapper {
     /** 取某个日期前缀下最大的订单号，用于生成当日序号。 */
     @Select("SELECT MAX(order_no) FROM orders WHERE order_no LIKE #{prefix}")
     String maxOrderNo(@Param("prefix") String prefix);
+
+    /**
+     * 把「未支付」订单改为已支付并记录支付时间。
+     * 条件里带 status = 'created'，并发重复支付时只有一条能更新成功，返回 0 表示没抢到。
+     */
+    @Update("UPDATE orders SET status = 'paid', paid_at = #{paidAt} "
+            + "WHERE order_no = #{orderNo} AND status = 'created'")
+    int markPaid(@Param("orderNo") String orderNo, @Param("paidAt") LocalDateTime paidAt);
 
     @Select("<script>"
             + "SELECT " + COLUMNS + " FROM orders"
