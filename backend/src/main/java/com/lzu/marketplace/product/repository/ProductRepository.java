@@ -34,6 +34,15 @@ public class ProductRepository {
     private static final String UPDATE_STATUS_SQL =
             "UPDATE products SET status = ? WHERE id = ?";
 
+    /**
+     * 原子扣减库存：带 status='on' 和 stock>=? 条件，由数据库在拿到行锁后按最新数据判定。
+     *
+     * <p>受影响行数为 1 表示扣减成功；为 0 表示没扣成（商品不存在、已下架或库存不够），
+     * 到底是哪种原因由调用方再查一次商品来区分。</p>
+     */
+    private static final String DEDUCT_STOCK_SQL =
+            "UPDATE products SET stock = stock - ? WHERE id = ? AND status = 'on' AND stock >= ?";
+
     private static final RowMapper<Product> ROW_MAPPER = (rs, rowNum) -> new Product(
             rs.getLong("id"),
             rs.getString("title"),
@@ -72,6 +81,16 @@ public class ProductRepository {
     /** 返回受影响行数，0 表示商品不存在。 */
     public int updateStatus(long id, String status) {
         return jdbcTemplate.update(UPDATE_STATUS_SQL, status, id);
+    }
+
+    /**
+     * 扣减库存，返回受影响行数（1 = 扣减成功，0 = 没扣成）。
+     *
+     * <p>把"商品在架"和"库存够"都写进 WHERE 条件，数据库会在加锁后按最新值重新判定，
+     * 因此并发下单不会把库存扣成负数（不会超卖）。</p>
+     */
+    public int deductStock(long productId, int quantity) {
+        return jdbcTemplate.update(DEDUCT_STOCK_SQL, quantity, productId, quantity);
     }
 
     /**

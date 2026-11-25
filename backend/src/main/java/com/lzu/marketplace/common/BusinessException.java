@@ -26,6 +26,16 @@ public class BusinessException extends RuntimeException {
         return new BusinessException(HttpStatus.NOT_FOUND, 40401, message);
     }
 
+    /**
+     * 状态冲突：409 + 指定的业务码。
+     *
+     * <p>用于库存不足（40901）、商品已下架（40902）这类"请求本身合法、
+     * 但当前资源状态不允许"的场景。</p>
+     */
+    public static BusinessException conflict(int code, String message) {
+        return new BusinessException(HttpStatus.CONFLICT, code, message);
+    }
+
     public HttpStatus getStatus() {
         return status;
     }

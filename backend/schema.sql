@@ -30,3 +30,7 @@ CREATE TABLE IF NOT EXISTS orders (
     CONSTRAINT uk_orders_order_no UNIQUE (order_no),
     CONSTRAINT fk_orders_product  FOREIGN KEY (product_id) REFERENCES products (id)
 );
+
+-- 订单号序列：下单时取下一个值拼成 SO + yyyyMMdd + 序号，保证唯一且并发安全。
+-- IF NOT EXISTS 保证每次启动重复执行都不会报错。
+CREATE SEQUENCE IF NOT EXISTS order_no_seq;
