@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# H2 数据库及备份
+/data/
+/data_backup/
+*.mv.db
+*.trace.db
+*.lock.db
+*.bak
