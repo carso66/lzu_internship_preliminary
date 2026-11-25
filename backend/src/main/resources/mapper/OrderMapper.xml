@@ -44,4 +44,19 @@
         FROM orders
         WHERE order_no = #{orderNo}
     </select>
+
+    <select id="countByBuyerPhone" resultType="long">
+        SELECT COUNT(*)
+        FROM orders
+        WHERE buyer_phone = #{buyerPhone}
+    </select>
+
+    <select id="findPageByBuyerPhone" resultType="com.example.marketplace.domain.Order">
+        SELECT id, order_no, product_id, product_title, quantity, unit_price, total_amount,
+               buyer_name, buyer_phone, address, status, created_at
+        FROM orders
+        WHERE buyer_phone = #{buyerPhone}
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
 </mapper>

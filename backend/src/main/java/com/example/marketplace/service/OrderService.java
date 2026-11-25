@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class OrderService {
 
@@ -63,6 +65,18 @@ public class OrderService {
         return order;
     }
 
+    @Transactional(readOnly = true)
+    public OrderPage listByBuyerPhone(String buyerPhone, int page, int pageSize) {
+        long total = orderMapper.countByBuyerPhone(buyerPhone);
+        if (total == 0) {
+            return new OrderPage(0, List.of());
+        }
+
+        long offset = ((long) page - 1) * pageSize;
+        List<Order> items = orderMapper.findPageByBuyerPhone(buyerPhone, offset, pageSize);
+        return new OrderPage(total, items);
+    }
+
     private void throwStockError(long productId, int quantity) {
         Product product = productMapper.findById(productId);
         if (product == null) {
@@ -72,5 +86,8 @@ public class OrderService {
             throw new ProductOffSaleException(productId);
         }
         throw new InsufficientStockException(productId);
+    }
+
+    public record OrderPage(long total, List<Order> items) {
     }
 }
