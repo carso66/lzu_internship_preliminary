@@ -188,4 +188,66 @@ public class ProductRepository {
                 ), id
         ).stream().findFirst();
     }
+
+    /**
+     * 在事务中按 ID 查询并锁定商品行。
+     *
+     * 必须由处于事务中的 Service 方法调用，否则行锁会在当前语句
+     * 结束后释放。
+     */
+    public Optional<Product> findByIdForUpdate(long id) {
+        String sql = """
+                SELECT id, title, price, stock, category, description,
+                       image_url, status, seller_name, created_at, updated_at
+                FROM products
+                WHERE id = ?
+                FOR UPDATE
+                """;
+
+        return jdbcTemplate.query(
+                        sql,
+                        (rs, rowNum) -> new Product(
+                                rs.getLong("id"),
+                                rs.getString("title"),
+                                rs.getLong("price"),
+                                rs.getInt("stock"),
+                                rs.getString("category"),
+                                rs.getString("description"),
+                                rs.getString("image_url"),
+                                rs.getString("status"),
+                                rs.getString("seller_name"),
+                                rs.getTimestamp("created_at").toLocalDateTime(),
+                                rs.getTimestamp("updated_at").toLocalDateTime()
+                        ),
+                        id
+                )
+                .stream()
+                .findFirst();
+    }
+
+    /**
+     * 原子扣减库存。
+     *
+     * 返回值：
+     * 1：扣减成功
+     * 0：库存不足
+     *
+     * WHERE stock >= ? 防止库存被扣成负数。
+     */
+    public int deductStock(long productId, int quantity) {
+        String sql = """
+                UPDATE products
+                SET stock = stock - ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                  AND stock >= ?
+                """;
+
+        return jdbcTemplate.update(
+                sql,
+                quantity,
+                productId,
+                quantity
+        );
+    }
 }
