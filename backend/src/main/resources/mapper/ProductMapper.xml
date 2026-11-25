@@ -35,6 +35,13 @@
         WHERE id = #{id}
     </update>
 
+    <update id="decreaseStockIfAvailable">
+        UPDATE products
+        SET stock = stock - #{quantity}
+        WHERE id = #{id}
+          AND status = 'on'
+          AND stock >= #{quantity}
+    </update>
     <select id="count" resultType="long">
         SELECT COUNT(*)
         FROM products

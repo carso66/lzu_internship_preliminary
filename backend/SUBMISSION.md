@@ -32,12 +32,14 @@ mvn spring-boot:run
 
 ## 测试 / 自检
 
-在 `backend/` 下执行 `mvn test` 运行接口测试，或执行 `mvn clean package` 同时验证测试与打包。当前 MockMvc 集成测试共 39 条，覆盖商品发布与参数校验、列表筛选分页、详情查询、上下架状态更新及商品不存在、未预期异常的统一响应。
+在 `backend/` 下执行 `mvn test` 运行接口测试，或执行 `mvn clean package` 同时验证测试与打包。当前完整测试套件共 55 条，覆盖商品发布与参数校验、列表筛选分页、详情查询、上下架状态更新、下单金额计算、下单参数校验、商品不存在、库存不足、商品下架、并发不超卖和下单事务回滚。
 
 ```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-19'
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
 cd backend
-mvn test
-mvn clean package
+& mvn '-Dmaven.repo.local=C:\Users\18537\.m2\repository' test
+& mvn '-Dmaven.repo.local=C:\Users\18537\.m2\repository' clean package
 ```
 
 应用启动后在另一个终端执行以下命令。健康检查通过 MyBatis Mapper XML 在 H2 中执行 `SELECT 1`。
@@ -52,18 +54,84 @@ curl.exe -i http://localhost:8080/api/health
 {"code":0,"message":"ok","data":null}
 ```
 
+## POST /api/orders 实现
+
+请求体保持题目约定格式：
+
+```json
+{
+  "productId": 3,
+  "quantity": 2,
+  "buyerName": "张三",
+  "buyerPhone": "13800138000",
+  "address": "兰州市城关区天水南路222号"
+}
+```
+
+成功时返回 HTTP 201 和统一响应结构，金额由服务端按数据库中的商品价格计算，不接受客户端传入金额。错误映射如下：
+
+| 场景 | HTTP | code |
+|---|---|---|
+| 参数缺失、类型错误、productId 非正数或数量小于 1 | 400 | `40001` |
+| 商品不存在 | 404 | `40401` |
+| 库存不足 | 409 | `40901` |
+| 商品已下架 | 409 | `40902` |
+
+扣库存使用单条条件更新，判断和扣减在数据库内原子完成：
+
+```sql
+UPDATE products
+SET stock = stock - #{quantity}
+WHERE id = #{id}
+  AND status = 'on'
+  AND stock >= #{quantity}
+```
+
+`OrderService.create` 使用 `READ_COMMITTED` 事务。先条件扣库存，再读取商品快照、插入订单并查询订单结果；任意步骤异常时，事务整体回滚，已经扣减的库存会恢复。
+
+该接口没有实现服务端幂等，也没有引入 Redis。前端可以通过按钮防抖、请求进行中禁用按钮等方式降低重复提交概率，但不能替代服务端幂等保证；在“不改请求格式、不增加幂等键”的约束下，本实现明确接受这一限制。
+
+## 并发不超卖验证（L2-10）
+
+自动化测试文件：`src/test/java/com/example/marketplace/controller/OrderConcurrencyApiTest.java`。
+
+**准备数据**：测试会通过 `POST /api/products` 自动创建一个已上架、库存为 1 的商品，不需要手工准备数据库记录。
+
+**并发请求**：用 10 个线程和 `CountDownLatch` 同时发起 10 个有效的 `POST /api/orders` 请求，每个请求购买 1 件。
+
+**运行方式**：
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-19'
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
+cd backend
+& mvn '-Dmaven.repo.local=C:\Users\18537\.m2\repository' '-Dtest=OrderConcurrencyApiTest' test
+```
+
+**核对方式**：
+
+- HTTP 201 恰好 1 个；
+- HTTP 409 恰好 9 个，且响应中的 `code` 全部为 `40901`；
+- 使用 `GET /api/products/{id}` 查询，最终库存恰好为 0；
+- `orders` 表中该商品的订单数恰好为 1。
+
+并发安全由数据库条件更新保证，不使用 Redis、`version` 乐观锁字段、`SELECT ... FOR UPDATE` 或应用层重试。测试使用独立 H2 数据库 `order-concurrency-test`，避免与其他 Spring 测试上下文共享数据库。
+
+事务回滚另由 `OrderRollbackApiTest` 验证：固定订单号制造唯一约束冲突，第二次下单返回 500 后库存仍只减少第一次成功下单的数量，订单数仍为 1。
+
 ## 我做到了哪一步
 
-目前已初始化工程并完成建表、健康检查、商品发布、商品列表、商品详情和商品上下架接口。
+目前已初始化工程并完成建表、健康检查、商品发布、商品列表、商品详情、商品上下架和 L1-6 下单接口。
 
 | 层级 | 计划范围 | 完成情况 |
 |---|---|---|
 | L0 | 建表和商品接口 | L0-1 至 L0-5 已完成（发布、列表、详情、上下架） |
-| L1 | 下单扣库存和订单查询 | 待开发 |
-| L2 | L2-9 支付链路、L2-11 鉴权 | 待开发 |
+| L1 | 下单扣库存和订单查询 | L1-6 已完成；L1-7 订单查询待开发 |
+| L2 | 支付链路、并发、鉴权 | L2-10 并发不超卖已完成；其余挑战待开发 |
 
 ## 自检清单
 
 - [x] 执行干净构建并按上面的命令启动
+- [x] 并发不超卖测试达到 1 个成功、9 个 409、库存 0、订单 1 条
 - [x] 确认提交中没有 `target/`、`*.db` 或 `.env`
 - [ ] 填写完整的 `DESIGN.md` 和 `AI_USAGE.md`

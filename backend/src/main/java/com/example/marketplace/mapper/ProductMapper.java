@@ -13,6 +13,8 @@ public interface ProductMapper {
 
     int updateStatus(@Param("id") long id, @Param("status") String status);
 
+    int decreaseStockIfAvailable(@Param("id") long id, @Param("quantity") int quantity);
+
     long count(
             @Param("keyword") String keyword,
             @Param("status") String status,

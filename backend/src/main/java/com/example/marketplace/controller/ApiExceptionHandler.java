@@ -1,6 +1,8 @@
 package com.example.marketplace.controller;
 
+import com.example.marketplace.exception.InsufficientStockException;
 import com.example.marketplace.exception.ProductNotFoundException;
+import com.example.marketplace.exception.ProductOffSaleException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -50,6 +52,17 @@ public class ApiExceptionHandler {
                 .body(new ApiResponse<>(40401, exception.getMessage(), null));
     }
 
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInsufficientStock(InsufficientStockException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiResponse<>(40901, "库存不足", null));
+    }
+
+    @ExceptionHandler(ProductOffSaleException.class)
+    public ResponseEntity<ApiResponse<Void>> handleProductOffSale(ProductOffSaleException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiResponse<>(40902, "商品已下架", null));
+    }
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException exception) {
         String field = findJsonField(exception);

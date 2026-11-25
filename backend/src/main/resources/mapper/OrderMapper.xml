@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.marketplace.mapper.OrderMapper">
+
+    <insert id="insert" parameterType="com.example.marketplace.domain.Order"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO orders (
+            order_no,
+            product_id,
+            product_title,
+            quantity,
+            unit_price,
+            total_amount,
+            buyer_name,
+            buyer_phone,
+            address,
+            status
+        )
+        VALUES (
+            #{orderNo},
+            #{productId},
+            #{productTitle},
+            #{quantity},
+            #{unitPrice},
+            #{totalAmount},
+            #{buyerName},
+            #{buyerPhone},
+            #{address},
+            #{status}
+        )
+    </insert>
+
+    <select id="findById" resultType="com.example.marketplace.domain.Order">
+        SELECT id, order_no, product_id, product_title, quantity, unit_price, total_amount,
+               buyer_name, buyer_phone, address, status, created_at
+        FROM orders
+        WHERE id = #{id}
+    </select>
+</mapper>
