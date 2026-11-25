@@ -26,6 +26,8 @@ async function onToggle(product) {
 import { api } from './api/client'
 // 引入商品列表组件
 import ProductList from './components/ProductList.vue'
+// 引入发布商品表单组件（不 import + 不写标签，组件就永远不会渲染）
+import PublishForm from './components/PublishForm.vue'
 
 // 引入全站唯一的分类数组，下拉框的选项从它生成
 import { CATEGORIES } from './constants'
@@ -96,6 +98,10 @@ onMounted(() => {
       <button @click="search">搜索</button>
       <button @click="clearQuery">清空筛选</button>
     </div>
+
+    <!-- 发布表单：不需要传任何 props，写成自闭合标签就行 -->
+    <!-- @created="search"：子组件 emit('created') 时触发，正好复用 search 把新商品刷出来 -->
+    <PublishForm @created="search" />
 
     <!-- 把 products 和 loading 传给 ProductList 组件 -->
     <!-- :products 和 :loading 前面的冒号表示"传的是变量的值"，不是字符串 -->
