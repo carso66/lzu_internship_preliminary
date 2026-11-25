@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="33" skipped="0" tests="46" time="25.400" timestamp="2026-11-25T13:12:52.929924+08:00" hostname="adward"><testcase classname="test_security" name="test_user_cannot_read_another_users_profile" time="0.333"><failure message="assert 200 == 403&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\test_security.py:25: in test_user_cannot_read_another_users_profile
+    assert r.status_code == 403
+E   assert 200 == 403
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="test_security" name="test_normal_user_cannot_read_admin_order_list" time="0.526"><failure message="assert 200 == 403&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\test_security.py:34: in test_normal_user_cannot_read_admin_order_list
+    assert r.status_code == 403
+E   assert 200 == 403
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="test_security" name="test_user_cannot_read_another_users_order" time="0.523"><failure message="assert 200 == 403&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\test_security.py:43: in test_user_cannot_read_another_users_order
+    assert r.status_code == 403
+E   assert 200 == 403
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="test_security" name="test_unsigned_payment_callback_must_not_mark_order_paid" time="0.526"><failure message="assert 200 in (400, 401, 403)&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\test_security.py:52: in test_unsigned_payment_callback_must_not_mark_order_paid
+    assert r.status_code in (400, 401, 403)
+E   assert 200 in (400, 401, 403)
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="test_security" name="test_order_price_must_be_calculated_from_database" time="0.538"><failure message="assert 1 == 1990">testing\自动化\test_security.py:70: in test_order_price_must_be_calculated_from_database
+    assert data["unitPrice"] == 1990
+E   assert 1 == 1990</failure></testcase><testcase classname="test_security" name="test_order_quantity_must_be_positive_integer" time="0.538"><failure message="assert 201 == 400&#10; +  where 201 = &lt;Response [201]&gt;.status_code">testing\自动化\test_security.py:82: in test_order_quantity_must_be_positive_integer
+    assert r.status_code == 400
+E   assert 201 == 400
+E    +  where 201 = &lt;Response [201]&gt;.status_code</failure></testcase><testcase classname="test_security" name="test_concurrent_purchase_must_not_oversell" time="0.539"><failure message="AssertionError: assert [201, 201] == [201, 409]&#10;  &#10;  At index 1 diff: 201 != 409&#10;  &#10;  Full diff: (-: missing in left side, +: extra in left side)&#10;    [&#10;        201,&#10;  -     409,...&#10;  &#10;  ...Full output truncated, use '-vv' to show">testing\自动化\test_security.py:101: in test_concurrent_purchase_must_not_oversell
+    assert sorted(r.status_code for r in responses) == [201, 409]
+E   AssertionError: assert [201, 201] == [201, 409]
+E
+E     At index 1 diff: 201 != 409
+E
+E     Full diff: (-: missing in left side, +: extra in left side)
+E       [
+E           201,
+E     -     409,...
+E
+E     ...Full output truncated, use '-vv' to show</failure></testcase><testcase classname="test_security" name="test_product_search_input_must_not_change_sql_logic" time="0.524"><failure message="assert False&#10; +  where False = all(&lt;generator object test_product_search_input_must_not_change_sql_logic.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012FF8D2C660&gt;)">testing\自动化\test_security.py:121: in test_product_search_input_must_not_change_sql_logic
+    assert all(item.get("status") != "off" for item in items)
+E   assert False
+E    +  where False = all(&lt;generator object test_product_search_input_must_not_change_sql_logic.&lt;locals&gt;.&lt;genexpr&gt; at 0x0000012FF8D2C660&gt;)</failure></testcase><testcase classname="test_security" name="test_review_html_must_escape_user_content" time="0.541"><failure message="assert '&lt;script&gt;alert(1)&lt;/script&gt;' not in '&lt;!DOCTYPE h...&gt;\n&lt;/html&gt;\n'&#10;  &#10;  '&lt;script&gt;alert(1)&lt;/script&gt;' is contained here:&#10;    &lt;!DOCTYPE html&gt;&#10;    &lt;html lang=&quot;zh-CN&quot;&gt;&#10;    &lt;head&gt;&#10;    &lt;meta charset=&quot;utf-8&quot;&gt;&#10;    &lt;title&gt;商品评价&lt;/title&gt;...&#10;  &#10;  ...Full output truncated, use '-vv' to show">testing\自动化\test_security.py:143: in test_review_html_must_escape_user_content
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" not in page.text
+E   assert '&lt;script&gt;alert(1)&lt;/script&gt;' not in '&lt;!DOCTYPE h...&gt;\n&lt;/html&gt;\n'
+E
+E     '&lt;script&gt;alert(1)&lt;/script&gt;' is contained here:
+E       &lt;!DOCTYPE html&gt;
+E       &lt;html lang="zh-CN"&gt;
+E       &lt;head&gt;
+E       &lt;meta charset="utf-8"&gt;
+E       &lt;title&gt;商品评价&lt;/title&gt;...
+E
+E     ...Full output truncated, use '-vv' to show</failure></testcase><testcase classname="test_security" name="test_user_cannot_create_payment_for_another_users_order" time="0.525"><failure message="assert 200 == 403&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\test_security.py:154: in test_user_cannot_create_payment_for_another_users_order
+    assert r.status_code == 403
+E   assert 200 == 403
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_authentication" name="test_login_success_returns_user_identity" time="0.532" /><testcase classname="tests.test_authentication" name="test_logout_invalidates_original_token" time="0.570"><failure message="AssertionError: 登出后原 Token 仍可访问受保护接口：HTTP 200, {&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;total&quot;: 1, &quot;items&quot;: [{&quot;id&quot;: 1, &quot;orderNo&quot;: &quot;SO202609180001&quot;, &quot;userId&quot;: 2, &quot;userName&quot;: &quot;alice&quot;, &quot;productId&quot;: 1, &quot;productTitle&quot;: &quot;无线蓝牙耳机&quot;, &quot;quantity&quot;: 2, &quot;unitPrice&quot;: 1990, &quot;totalAmount&quot;: 3980, &quot;status&quot;: &quot;created&quot;, &quot;receiverPhone&quot;: &quot;13800138002&quot;, &quot;address&quot;: &quot;兰州市城关区天水南路222号&quot;, &quot;createdAt&quot;: &quot;2026-09-18T09:20:00Z&quot;, &quot;paidAt&quot;: null}]}}&#10;assert 200 in (401, 403)&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\tests\test_authentication.py:39: in test_logout_invalidates_original_token
+    assert after_logout.status_code in (401, 403), (
+E   AssertionError: 登出后原 Token 仍可访问受保护接口：HTTP 200, {"code": 0, "message": "ok", "data": {"total": 1, "items": [{"id": 1, "orderNo": "SO202609180001", "userId": 2, "userName": "alice", "productId": 1, "productTitle": "无线蓝牙耳机", "quantity": 2, "unitPrice": 1990, "totalAmount": 3980, "status": "created", "receiverPhone": "13800138002", "address": "兰州市城关区天水南路222号", "createdAt": "2026-09-18T09:20:00Z", "paidAt": null}]}}
+E   assert 200 in (401, 403)
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_authorization" name="test_user_cannot_read_admin_or_other_users_data[/api/admin/orders]" time="0.527"><failure message="AssertionError: /api/admin/orders 应拒绝普通用户访问，实际 HTTP 200: {&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;total&quot;: 2, &quot;items&quot;: [{&quot;id&quot;: 2, &quot;orderNo&quot;: &quot;SO202609200002&quot;, &quot;userId&quot;: 3, &quot;userName&quot;: &quot;bob&quot;, &quot;productTitle&quot;: &quot;机械键盘 87 键&quot;, &quot;quantity&quot;: 1, &quot;totalAmount&quot;: 12900, &quot;status&quot;: &quot;paid&quot;, &quot;receiverPhone&quot;: &quot;13800138003&quot;, &quot;address&quot;: &quot;兰州市安宁区安宁西路88号&quot;, &quot;createdAt&quot;: &quot;2026-09-20T13:05:00Z&quot;}, {&quot;id&quot;: 1, &quot;orderNo&quot;: &quot;SO202609180001&quot;, &quot;userId&quot;: 2, &quot;userName&quot;: &quot;alice&quot;, &quot;productTitle&quot;: &quot;无线蓝牙耳机&quot;, &quot;quantity&quot;: 2, &quot;totalAmount&quot;: 3...&#10;[+2 more lines; full report in element text]">testing\自动化\tests\test_authorization.py:11: in test_user_cannot_read_admin_or_other_users_data
+    assert response.status_code in (401, 403), (
+E   AssertionError: /api/admin/orders 应拒绝普通用户访问，实际 HTTP 200: {"code": 0, "message": "ok", "data": {"total": 2, "items": [{"id": 2, "orderNo": "SO202609200002", "userId": 3, "userName": "bob", "productTitle": "机械键盘 87 键", "quantity": 1, "totalAmount": 12900, "status": "paid", "receiverPhone": "13800138003", "address": "兰州市安宁区安宁西路88号", "createdAt": "2026-09-20T13:05:00Z"}, {"id": 1, "orderNo": "SO202609180001", "userId": 2, "userName": "alice", "productTitle": "无线蓝牙耳机", "quantity": 2, "totalAmount": 3980, "status": "created", "receiverPhone": "13800138002", "address": "兰州市城关区天水南路222号", "createdAt": "2026-09-18T09:20:00Z"}]}}
+E   assert 200 in (401, 403)
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_authorization" name="test_user_cannot_read_admin_or_other_users_data[/api/users/3]" time="0.527"><failure message="AssertionError: /api/users/3 应拒绝普通用户访问，实际 HTTP 200: {&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;id&quot;: 3, &quot;username&quot;: &quot;bob&quot;, &quot;realName&quot;: &quot;李波&quot;, &quot;phone&quot;: &quot;13800138003&quot;, &quot;role&quot;: &quot;user&quot;, &quot;createdAt&quot;: &quot;2026-09-01T08:00:00Z&quot;}}&#10;assert 200 in (401, 403)&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\tests\test_authorization.py:11: in test_user_cannot_read_admin_or_other_users_data
+    assert response.status_code in (401, 403), (
+E   AssertionError: /api/users/3 应拒绝普通用户访问，实际 HTTP 200: {"code": 0, "message": "ok", "data": {"id": 3, "username": "bob", "realName": "李波", "phone": "13800138003", "role": "user", "createdAt": "2026-09-01T08:00:00Z"}}
+E   assert 200 in (401, 403)
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_authorization" name="test_user_cannot_read_admin_or_other_users_data[/api/orders/2]" time="0.528"><failure message="AssertionError: /api/orders/2 应拒绝普通用户访问，实际 HTTP 200: {&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;id&quot;: 2, &quot;orderNo&quot;: &quot;SO202609200002&quot;, &quot;userId&quot;: 3, &quot;userName&quot;: &quot;bob&quot;, &quot;productId&quot;: 2, &quot;productTitle&quot;: &quot;机械键盘 87 键&quot;, &quot;quantity&quot;: 1, &quot;unitPrice&quot;: 12900, &quot;totalAmount&quot;: 12900, &quot;status&quot;: &quot;paid&quot;, &quot;receiverPhone&quot;: &quot;13800138003&quot;, &quot;address&quot;: &quot;兰州市安宁区安宁西路88号&quot;, &quot;createdAt&quot;: &quot;2026-09-20T13:05:00Z&quot;, &quot;paidAt&quot;: &quot;2026-09-20T13:06:12Z&quot;}}&#10;assert 200 in (401, 403)&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\tests\test_authorization.py:11: in test_user_cannot_read_admin_or_other_users_data
+    assert response.status_code in (401, 403), (
+E   AssertionError: /api/orders/2 应拒绝普通用户访问，实际 HTTP 200: {"code": 0, "message": "ok", "data": {"id": 2, "orderNo": "SO202609200002", "userId": 3, "userName": "bob", "productId": 2, "productTitle": "机械键盘 87 键", "quantity": 1, "unitPrice": 12900, "totalAmount": 12900, "status": "paid", "receiverPhone": "13800138003", "address": "兰州市安宁区安宁西路88号", "createdAt": "2026-09-20T13:05:00Z", "paidAt": "2026-09-20T13:06:12Z"}}
+E   assert 200 in (401, 403)
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_injection" name="test_product_search_keyword_is_not_sql_injection" time="0.524"><failure message="AssertionError: 注入关键词不应绕过搜索条件并返回全部12件商品&#10;assert 12 &lt; 12">testing\自动化\tests\test_injection.py:5: in test_product_search_keyword_is_not_sql_injection
+    assert data["total"] &lt; 12, "注入关键词不应绕过搜索条件并返回全部12件商品"
+E   AssertionError: 注入关键词不应绕过搜索条件并返回全部12件商品
+E   assert 12 &lt; 12</failure></testcase><testcase classname="tests.test_l2_concurrency" name="test_l2_ten_concurrent_requests_cannot_oversell_last_item" time="1.044"><failure message="AssertionError: 库存为1时应仅有1个请求成功，实际成功7个；状态码=[201, 409, 409, 201, 201, 201, 201, 409, 201, 201]&#10;assert 7 == 1">testing\自动化\tests\test_l2_concurrency.py:66: in test_l2_ten_concurrent_requests_cannot_oversell_last_item
+    assert success_count == 1, (
+E   AssertionError: 库存为1时应仅有1个请求成功，实际成功7个；状态码=[201, 409, 409, 201, 201, 201, 201, 409, 201, 201]
+E   assert 7 == 1</failure></testcase><testcase classname="tests.test_log_security" name="test_login_password_must_not_appear_in_logs" time="0.538"><failure message="AssertionError: 安全缺陷：用户登录密码以明文形式出现在控制台日志中&#10;assert 'Alice@123' not in '026-11-25 1....0ms token=-'&#10;  &#10;  'Alice@123' is contained here:&#10;    026-11-25 13:13:02 [auth] 登录请求 username=alice password=Alice@123&#10;  ?                                                        +++++++++&#10;    2026-11-25 13:13:02 [auth] 登录成功 username=alice userId=2&#10;    2026-11-25 13:13:02 [access] POST /api/auth/login 200 3.0ms token=-">testing\自动化\tests\test_log_security.py:24: in test_login_password_must_not_appear_in_logs
+    assert user["password"] not in logs, (
+E   AssertionError: 安全缺陷：用户登录密码以明文形式出现在控制台日志中
+E   assert 'Alice@123' not in '026-11-25 1....0ms token=-'
+E
+E     'Alice@123' is contained here:
+E       026-11-25 13:13:02 [auth] 登录请求 username=alice password=Alice@123
+E     ?                                                        +++++++++
+E       2026-11-25 13:13:02 [auth] 登录成功 username=alice userId=2
+E       2026-11-25 13:13:02 [access] POST /api/auth/login 200 3.0ms token=-</failure></testcase><testcase classname="tests.test_log_security" name="test_access_token_must_not_appear_in_logs" time="0.524"><failure message="AssertionError: 安全缺陷：访问日志记录了完整的 Authorization Token&#10;assert 'Bearer tk_2' not in '2026-11-25 ...earer tk_2\n'&#10;  &#10;  'Bearer tk_2' is contained here:&#10;    2026-11-25 13:13:03 [access] GET /api/orders/mine 200 7.0ms token=Bearer tk_2&#10;  ?                                                                   +++++++++++">testing\自动化\tests\test_log_security.py:41: in test_access_token_must_not_appear_in_logs
+    assert "Bearer tk_2" not in logs, (
+E   AssertionError: 安全缺陷：访问日志记录了完整的 Authorization Token
+E   assert 'Bearer tk_2' not in '2026-11-25 ...earer tk_2\n'
+E
+E     'Bearer tk_2' is contained here:
+E       2026-11-25 13:13:03 [access] GET /api/orders/mine 200 7.0ms token=Bearer tk_2
+E     ?                                                                   +++++++++++</failure></testcase><testcase classname="tests.test_order_boundary" name="test_order_for_nonexistent_product_returns_404" time="0.531" /><testcase classname="tests.test_order_boundary" name="test_unauthenticated_user_cannot_create_order" time="0.529" /><testcase classname="tests.test_order_boundary" name="test_zero_stock_product_cannot_be_purchased" time="0.547" /><testcase classname="tests.test_orders" name="test_server_ignores_client_supplied_price_and_total" time="0.528"><failure message="assert 1 == 1990">testing\自动化\tests\test_orders.py:12: in test_server_ignores_client_supplied_price_and_total
+    assert row["unit_price"] == 1990
+E   assert 1 == 1990</failure></testcase><testcase classname="tests.test_orders" name="test_quantity_must_be_positive_integer" time="0.524"><failure message="AssertionError: quantity=-1 应被拒绝，实际 HTTP 201: {&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;id&quot;: 3, &quot;orderNo&quot;: &quot;SO202611250003&quot;, &quot;productId&quot;: 1, &quot;productTitle&quot;: &quot;无线蓝牙耳机&quot;, &quot;quantity&quot;: -1, &quot;unitPrice&quot;: 1990, &quot;totalAmount&quot;: -1989.9999999999998, &quot;status&quot;: &quot;created&quot;, &quot;receiverPhone&quot;: &quot;13800138002&quot;, &quot;address&quot;: &quot;兰州市城关区天水南路222号&quot;, &quot;createdAt&quot;: &quot;2026-11-25T05:13:06Z&quot;}}&#10;assert 201 in (400, 422)&#10; +  where 201 = &lt;Response [201]&gt;.status_code">testing\自动化\tests\test_orders.py:19: in test_quantity_must_be_positive_integer
+    assert response.status_code in (400, 422), (
+E   AssertionError: quantity=-1 应被拒绝，实际 HTTP 201: {"code": 0, "message": "ok", "data": {"id": 3, "orderNo": "SO202611250003", "productId": 1, "productTitle": "无线蓝牙耳机", "quantity": -1, "unitPrice": 1990, "totalAmount": -1989.9999999999998, "status": "created", "receiverPhone": "13800138002", "address": "兰州市城关区天水南路222号", "createdAt": "2026-11-25T05:13:06Z"}}
+E   assert 201 in (400, 422)
+E    +  where 201 = &lt;Response [201]&gt;.status_code</failure></testcase><testcase classname="tests.test_orders" name="test_concurrent_last_item_purchase_must_not_oversell" time="0.525"><failure message="AssertionError: 应一单成功、一单库存不足；状态码=[201, 201]；响应=['{&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;id&quot;: 4, &quot;orderNo&quot;: &quot;SO202611250004&quot;, &quot;productId&quot;: 5, &quot;productTitle&quot;: &quot;轻薄防晒外套&quot;, &quot;quantity&quot;: 1, &quot;unitPrice&quot;: 8990, &quot;totalAmount&quot;: 8990.0, &quot;status&quot;: &quot;created&quot;, &quot;receiverPhone&quot;: &quot;13800138002&quot;, &quot;address&quot;: &quot;兰州市城关区天水南路222号&quot;, &quot;createdAt&quot;: &quot;2026-11-25T05:13:06Z&quot;}}', '{&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;id&quot;: 3, &quot;orderNo&quot;: &quot;SO202611250003&quot;, &quot;productId&quot;: 5, &quot;productTitle&quot;: &quot;轻薄防晒外套&quot;, &quot;quantity&quot;: 1, &quot;unitPrice&quot;: 8990, &quot;...&#10;[+3 more lines; full report in element text]">testing\自动化\tests\test_orders.py:37: in test_concurrent_last_item_purchase_must_not_oversell
+    assert statuses.count(201) == 1 and sum(s in (400, 409) for s in statuses) == 1, (
+E   AssertionError: 应一单成功、一单库存不足；状态码=[201, 201]；响应=['{"code": 0, "message": "ok", "data": {"id": 4, "orderNo": "SO202611250004", "productId": 5, "productTitle": "轻薄防晒外套", "quantity": 1, "unitPrice": 8990, "totalAmount": 8990.0, "status": "created", "receiverPhone": "13800138002", "address": "兰州市城关区天水南路222号", "createdAt": "2026-11-25T05:13:06Z"}}', '{"code": 0, "message": "ok", "data": {"id": 3, "orderNo": "SO202611250003", "productId": 5, "productTitle": "轻薄防晒外套", "quantity": 1, "unitPrice": 8990, "totalAmount": 8990.0, "status": "created", "receiverPhone": "13800138002", "address": "兰州市城关区天水南路222号", "createdAt": "2026-11-25T05:13:06Z"}}']
+E   assert (2 == 1)
+E    +  where 2 = &lt;built-in method count of list object at 0x0000012FF8E14900&gt;(201)
+E    +    where &lt;built-in method count of list object at 0x0000012FF8E14900&gt; = [201, 201].count</failure></testcase><testcase classname="tests.test_payment_authorization" name="test_user_cannot_create_payment_for_another_users_order" time="0.552"><failure message="AssertionError: Bob 不得支付 Alice 的订单，实际 HTTP 200: {&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;paymentId&quot;: &quot;PAY202611250002&quot;, &quot;orderId&quot;: 1, &quot;amount&quot;: 3980, &quot;status&quot;: &quot;paid&quot;, &quot;paidAt&quot;: &quot;2026-11-25T05:13:07Z&quot;}}&#10;assert 200 == 403&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\tests\test_payment_authorization.py:26: in test_user_cannot_create_payment_for_another_users_order
+    assert response.status_code == 403, (
+E   AssertionError: Bob 不得支付 Alice 的订单，实际 HTTP 200: {"code": 0, "message": "ok", "data": {"paymentId": "PAY202611250002", "orderId": 1, "amount": 3980, "status": "paid", "paidAt": "2026-11-25T05:13:07Z"}}
+E   assert 200 == 403
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_payment_boundary" name="test_payment_for_nonexistent_order" time="0.539"><failure message="assert 200 == 404&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\tests\test_payment_boundary.py:10: in test_payment_for_nonexistent_order
+    assert response.status_code == 404
+E   assert 200 == 404
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_payment_boundary" name="test_unsupported_payment_method_is_rejected" time="0.546" /><testcase classname="tests.test_payment_callback_binding" name="test_callback_with_nonexistent_payment_id" time="0.538"><failure message="AssertionError: 伪造支付回调未被拒绝：HTTP 200&#10;assert 200 in (400, 401, 403)&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\tests\test_payment_callback_binding.py:45: in test_callback_with_nonexistent_payment_id
+    assert response.status_code in (400, 401, 403), (
+E   AssertionError: 伪造支付回调未被拒绝：HTTP 200
+E   assert 200 in (400, 401, 403)
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_payment_repeat_probe" name="test_repeated_payment_creation_probe" time="0.554"><failure message="AssertionError: 重复支付产生了异常记录：测试前 0 笔，测试后 2 笔，新增 2 笔，预期新增 1 笔&#10;assert 2 == 1">testing\自动化\tests\test_payment_repeat_probe.py:45: in test_repeated_payment_creation_probe
+    assert new_count == 1, (
+E   AssertionError: 重复支付产生了异常记录：测试前 0 笔，测试后 2 笔，新增 2 笔，预期新增 1 笔
+E   assert 2 == 1</failure></testcase><testcase classname="tests.test_payments" name="test_unsigned_fake_callback_must_not_mark_order_paid" time="0.539"><failure message="AssertionError: &#10;  支付回调安全测试失败！&#10;  HTTP 状态码：200&#10;  接口响应：{&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;orderId&quot;: 1, &quot;status&quot;: &quot;paid&quot;}}&#10;  回调前订单：{'status': 'created', 'paid_at': None}&#10;  回调后订单：{'status': 'paid', 'paid_at': '2026-11-25T05:13:09Z'}&#10;  是否拒绝请求：False&#10;  订单状态是否保持不变：False&#10;assert (False)">testing\自动化\tests\test_payments.py:38: in test_unsigned_fake_callback_must_not_mark_order_paid
+    assert rejected and unchanged, (
+E   AssertionError:
+E     支付回调安全测试失败！
+E     HTTP 状态码：200
+E     接口响应：{"code": 0, "message": "ok", "data": {"orderId": 1, "status": "paid"}}
+E     回调前订单：{'status': 'created', 'paid_at': None}
+E     回调后订单：{'status': 'paid', 'paid_at': '2026-11-25T05:13:09Z'}
+E     是否拒绝请求：False
+E     订单状态是否保持不变：False
+E   assert (False)</failure></testcase><testcase classname="tests.test_product_authorization" name="test_normal_user_cannot_change_another_sellers_product_status" time="0.539"><failure message="AssertionError: 普通用户不应修改其他卖家的商品，实际 HTTP 200: {&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;id&quot;: 1, &quot;status&quot;: &quot;off&quot;}}&#10;assert 200 == 403&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\tests\test_product_authorization.py:23: in test_normal_user_cannot_change_another_sellers_product_status
+    assert response.status_code == 403, (
+E   AssertionError: 普通用户不应修改其他卖家的商品，实际 HTTP 200: {"code": 0, "message": "ok", "data": {"id": 1, "status": "off"}}
+E   assert 200 == 403
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_product_boundary" name="test_product_detail_for_nonexistent_id_returns_404" time="0.541" /><testcase classname="tests.test_product_boundary" name="test_product_search_returns_only_matching_products" time="0.562" /><testcase classname="tests.test_product_boundary" name="test_invalid_product_price_is_rejected" time="0.529" /><testcase classname="tests.test_product_creation_auth" name="test_unauthenticated_user_cannot_create_product" time="0.530" /><testcase classname="tests.test_product_creation_auth" name="test_client_cannot_spoof_product_seller_id" time="0.528" /><testcase classname="tests.test_product_query_boundary" name="test_product_page_size_out_of_range_returns_400[0]" time="0.529"><failure message="AssertionError: pageSize=0 应返回 HTTP 400，实际为 200: {&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;total&quot;: 11, &quot;page&quot;: 1, &quot;pageSize&quot;: 0, &quot;items&quot;: []}}&#10;assert 200 == 400&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\tests\test_product_query_boundary.py:13: in test_product_page_size_out_of_range_returns_400
+    assert response.status_code == 400, (
+E   AssertionError: pageSize=0 应返回 HTTP 400，实际为 200: {"code": 0, "message": "ok", "data": {"total": 11, "page": 1, "pageSize": 0, "items": []}}
+E   assert 200 == 400
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_product_query_boundary" name="test_product_page_size_out_of_range_returns_400[51]" time="0.528"><failure message="AssertionError: pageSize=51 应返回 HTTP 400，实际为 200: {&quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: {&quot;total&quot;: 11, &quot;page&quot;: 1, &quot;pageSize&quot;: 51, &quot;items&quot;: [{&quot;id&quot;: 1, &quot;title&quot;: &quot;无线蓝牙耳机&quot;, &quot;price&quot;: 1990, &quot;stock&quot;: 12, &quot;category&quot;: &quot;数码&quot;, &quot;status&quot;: &quot;on&quot;, &quot;sellerId&quot;: 1, &quot;sellerPhone&quot;: &quot;13800138001&quot;, &quot;createdAt&quot;: &quot;2026-09-01T09:00:00Z&quot;}, {&quot;id&quot;: 2, &quot;title&quot;: &quot;机械键盘 87 键&quot;, &quot;price&quot;: 12900, &quot;stock&quot;: 8, &quot;category&quot;: &quot;数码&quot;, &quot;status&quot;: &quot;on&quot;, &quot;sellerId&quot;: 2, &quot;sellerPhone&quot;: &quot;13800138002&quot;, &quot;createdAt&quot;: &quot;2026-09-02T09:00:00Z&quot;}, {&quot;id&quot;: 3, &quot;...&#10;[+2 more lines; full report in element text]">testing\自动化\tests\test_product_query_boundary.py:13: in test_product_page_size_out_of_range_returns_400
+    assert response.status_code == 400, (
+E   AssertionError: pageSize=51 应返回 HTTP 400，实际为 200: {"code": 0, "message": "ok", "data": {"total": 11, "page": 1, "pageSize": 51, "items": [{"id": 1, "title": "无线蓝牙耳机", "price": 1990, "stock": 12, "category": "数码", "status": "on", "sellerId": 1, "sellerPhone": "13800138001", "createdAt": "2026-09-01T09:00:00Z"}, {"id": 2, "title": "机械键盘 87 键", "price": 12900, "stock": 8, "category": "数码", "status": "on", "sellerId": 2, "sellerPhone": "13800138002", "createdAt": "2026-09-02T09:00:00Z"}, {"id": 3, "title": "《金字塔原理》精装版", "price": 4999, "stock": 20, "category": "图书", "status": "on", "sellerId": 3, "sellerPhone": "13800138003", "createdAt": "2026-09-03T09:00:00Z"}, {"id": 4, "title": "《人类简史》十周年纪念版", "price": 3990, "stock": 15, "category": "图书", "status": "on", "sellerId": 1, "sellerPhone": "13800138001", "createdAt": "2026-09-04T09:00:00Z"}, {"id": 5, "title": "轻薄防晒外套", "price": 8990, "stock": 1, "category": "服饰", "status": "on", "sellerId": 2, "sellerPhone": "13800138002", "createdAt": "2026-09-05T09:00:00Z"}, {"id": 6, "title": "纯棉基础款短袖", "price": 3590, "stock": 30, "category": "服饰", "status": "on", "sellerId": 3, "sellerPhone": "13800138003", "createdAt": "2026-09-06T09:00:00Z"}, {"id": 8, "title": "手工黑糖麻花礼盒", "price": 2980, "stock": 25, "category": "食品", "status": "on", "sellerId": 2, "sellerPhone": "13800138002", "createdAt": "2026-09-08T09:00:00Z"}, {"id": 9, "title": "中性笔 0.5mm 十二支装", "price": 1290, "stock": 50, "category": "文具", "status": "on", "sellerId": 3, "sellerPhone": "13800138003", "createdAt": "2026-09-09T09:00:00Z"}, {"id": 10, "title": "A5 硬壳笔记本", "price": 2350, "stock": 40, "category": "文具", "status": "on", "sellerId": 1, "sellerPhone": "13800138001", "createdAt": "2026-09-10T09:00:00Z"}, {"id": 11, "title": "便携充电宝 10000mAh", "price": 9900, "stock": 6, "category": "数码", "status": "on", "sellerId": 2, "sellerPhone": "13800138002", "createdAt": "2026-09-11T09:00:00Z"}, {"id": 12, "title": "桌面收纳盒", "price": 3290, "stock": 22, "category": "文具", "status": "on", "sellerId": 3, "sellerPhone": "13800138003", "createdAt": "2026-09-12T09:00:00Z"}]}}
+E   assert 200 == 400
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_product_query_boundary" name="test_product_detail_non_numeric_id_returns_400" time="0.524"><failure message="AssertionError: 非数字商品 ID 应返回 HTTP 400，实际为 500: {&quot;code&quot;: 50000, &quot;message&quot;: &quot;服务内部错误&quot;, &quot;data&quot;: null}&#10;assert 500 == 400&#10; +  where 500 = &lt;Response [500]&gt;.status_code">testing\自动化\tests\test_product_query_boundary.py:23: in test_product_detail_non_numeric_id_returns_400
+    assert response.status_code == 400, (
+E   AssertionError: 非数字商品 ID 应返回 HTTP 400，实际为 500: {"code": 50000, "message": "服务内部错误", "data": null}
+E   assert 500 == 400
+E    +  where 500 = &lt;Response [500]&gt;.status_code</failure></testcase><testcase classname="tests.test_product_status_boundary" name="test_update_nonexistent_product_returns_404" time="0.530" /><testcase classname="tests.test_product_status_boundary" name="test_unauthenticated_user_cannot_update_product" time="0.532" /><testcase classname="tests.test_product_status_boundary" name="test_other_seller_product_status_cannot_be_changed" time="0.538"><failure message="AssertionError: assert [200, 200] == [403, 403]&#10;  &#10;  At index 0 diff: 200 != 403&#10;  &#10;  Full diff: (-: missing in left side, +: extra in left side)&#10;    [&#10;  -     403,&#10;  ?     ^ ^...&#10;  &#10;  ...Full output truncated, use '-vv' to show">testing\自动化\tests\test_product_status_boundary.py:75: in test_other_seller_product_status_cannot_be_changed
+    assert results == [403, 403]
+E   AssertionError: assert [200, 200] == [403, 403]
+E
+E     At index 0 diff: 200 != 403
+E
+E     Full diff: (-: missing in left side, +: extra in left side)
+E       [
+E     -     403,
+E     ?     ^ ^...
+E
+E     ...Full output truncated, use '-vv' to show</failure></testcase><testcase classname="tests.test_smoke" name="test_health_endpoint_is_available" time="0.533" /><testcase classname="tests.test_token_forgery" name="test_forged_token_cannot_impersonate_another_user" time="0.527"><failure message="AssertionError: Token 伪造成功，攻击者可能冒充用户3：HTTP 200&#10;assert 200 in (401, 403)&#10; +  where 200 = &lt;Response [200]&gt;.status_code">testing\自动化\tests\test_token_forgery.py:20: in test_forged_token_cannot_impersonate_another_user
+    assert response.status_code in (401, 403), (
+E   AssertionError: Token 伪造成功，攻击者可能冒充用户3：HTTP 200
+E   assert 200 in (401, 403)
+E    +  where 200 = &lt;Response [200]&gt;.status_code</failure></testcase><testcase classname="tests.test_xss" name="test_review_content_is_html_escaped_on_output" time="0.539"><failure message="assert &quot;&lt;script&gt;ale...s')&lt;/script&gt;&quot; not in '&lt;!DOCTYPE h...&gt;\n&lt;/html&gt;\n'&#10;  &#10;  &quot;&lt;script&gt;alert('campusmall-xss')&lt;/script&gt;&quot; is contained here:&#10;    &lt;!DOCTYPE html&gt;&#10;    &lt;html lang=&quot;zh-CN&quot;&gt;&#10;    &lt;head&gt;&#10;    &lt;meta charset=&quot;utf-8&quot;&gt;&#10;    &lt;title&gt;商品评价&lt;/title&gt;...&#10;  &#10;  ...Full output truncated, use '-vv' to show">testing\自动化\tests\test_xss.py:12: in test_review_content_is_html_escaped_on_output
+    assert "&lt;script&gt;alert('campusmall-xss')&lt;/script&gt;" not in page.text
+E   assert "&lt;script&gt;ale...s')&lt;/script&gt;" not in '&lt;!DOCTYPE h...&gt;\n&lt;/html&gt;\n'
+E
+E     "&lt;script&gt;alert('campusmall-xss')&lt;/script&gt;" is contained here:
+E       &lt;!DOCTYPE html&gt;
+E       &lt;html lang="zh-CN"&gt;
+E       &lt;head&gt;
+E       &lt;meta charset="utf-8"&gt;
+E       &lt;title&gt;商品评价&lt;/title&gt;...
+E
+E     ...Full output truncated, use '-vv' to show</failure></testcase></testsuite></testsuites>
