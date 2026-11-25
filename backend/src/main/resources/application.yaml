@@ -4,8 +4,13 @@ server:
 spring:
   application:
     name: backend
+  jackson:
+    deserialization:
+      # 金额/库存等整数字段不允许传小数（如 1.5 必须报错而不是截断成 1）
+      accept-float-as-int: false
+      fail-on-null-for-primitives: true
   datasource:
-    url: jdbc:mysql://localhost:3306/xy_lzu?useUnicode=true&characterSet=utf8mb4&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:mysql://localhost:3306/xy_lzu?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
     password: Fy123456
   jpa:

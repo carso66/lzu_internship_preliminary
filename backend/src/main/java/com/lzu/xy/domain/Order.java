@@ -10,7 +10,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -41,11 +40,13 @@ public class Order {
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal unitPrice;
+    /** 下单时的商品单价，单位：分 */
+    @Column(name = "unit_price", nullable = false)
+    private Integer unitPrice;
 
-    @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
-    private BigDecimal totalAmount;
+    /** 订单总金额，单位：分 */
+    @Column(name = "total_amount", nullable = false)
+    private Long totalAmount;
 
     @Column(name = "buyer_name", nullable = false, length = 64)
     private String buyerName;

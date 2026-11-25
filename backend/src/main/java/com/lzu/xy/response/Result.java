@@ -26,4 +26,8 @@ public class Result<T> {
         String message = ResultCodeEnum.getByCode(String.valueOf(code));
         return new Result<>(code, message, null);
     }
+
+    public static <T> Result<T> error(Integer code, String message) {
+        return new Result<>(code, message, null);
+    }
 }
