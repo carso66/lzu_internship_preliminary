@@ -1,6 +1,7 @@
 package com.example.marketplace.controller;
 
 import com.example.marketplace.exception.InsufficientStockException;
+import com.example.marketplace.exception.OrderNotFoundException;
 import com.example.marketplace.exception.ProductNotFoundException;
 import com.example.marketplace.exception.ProductOffSaleException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -48,6 +49,12 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ProductNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleProductNotFound(ProductNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(40401, exception.getMessage(), null));
+    }
+
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOrderNotFound(OrderNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ApiResponse<>(40401, exception.getMessage(), null));
     }

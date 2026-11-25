@@ -7,4 +7,6 @@ public interface OrderMapper {
     int insert(Order order);
 
     Order findById(long id);
+
+    Order findByOrderNo(String orderNo);
 }

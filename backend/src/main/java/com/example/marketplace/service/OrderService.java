@@ -4,6 +4,7 @@ import com.example.marketplace.domain.Order;
 import com.example.marketplace.domain.Product;
 import com.example.marketplace.dto.CreateOrderRequest;
 import com.example.marketplace.exception.InsufficientStockException;
+import com.example.marketplace.exception.OrderNotFoundException;
 import com.example.marketplace.exception.ProductNotFoundException;
 import com.example.marketplace.exception.ProductOffSaleException;
 import com.example.marketplace.mapper.OrderMapper;
@@ -51,6 +52,15 @@ public class OrderService {
 
         orderMapper.insert(order);
         return orderMapper.findById(order.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public Order getByOrderNo(String orderNo) {
+        Order order = orderMapper.findByOrderNo(orderNo);
+        if (order == null) {
+            throw new OrderNotFoundException(orderNo);
+        }
+        return order;
     }
 
     private void throwStockError(long productId, int quantity) {

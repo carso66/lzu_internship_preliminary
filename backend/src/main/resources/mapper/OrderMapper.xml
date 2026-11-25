@@ -37,4 +37,11 @@
         FROM orders
         WHERE id = #{id}
     </select>
+
+    <select id="findByOrderNo" resultType="com.example.marketplace.domain.Order">
+        SELECT id, order_no, product_id, product_title, quantity, unit_price, total_amount,
+               buyer_name, buyer_phone, address, status, created_at
+        FROM orders
+        WHERE order_no = #{orderNo}
+    </select>
 </mapper>
