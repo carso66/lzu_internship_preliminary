@@ -1,4 +1,4 @@
-package com.lzu.xy.reponse;
+package com.lzu.xy.response;
 
 import com.lzu.xy.enums.ResultCodeEnum;
 import lombok.AllArgsConstructor;

@@ -1,0 +1,42 @@
+CREATE TABLE IF NOT EXISTS products (
+    id BIGINT NOT NULL COMMENT '商品ID，主键，由应用生成雪花ID',
+    title VARCHAR(200) NOT NULL COMMENT '商品标题',
+    price DECIMAL(10, 2) NOT NULL COMMENT '商品单价，单位：元',
+    stock INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '商品库存数量',
+    category VARCHAR(50) NOT NULL COMMENT '商品分类',
+    description TEXT NULL COMMENT '商品描述',
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '商品状态：0-下架，1-上架',
+    seller_name VARCHAR(64) NOT NULL COMMENT '卖家名称',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(64) NULL COMMENT '创建人',
+    updated_by VARCHAR(64) NULL COMMENT '更新人',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-否，1-是',
+    PRIMARY KEY (id),
+    KEY idx_products_category (category),
+    KEY idx_products_status_deleted (status, is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品表';
+
+CREATE TABLE IF NOT EXISTS orders (
+    id BIGINT NOT NULL COMMENT '订单ID，主键，由应用生成雪花ID',
+    order_no VARCHAR(32) NOT NULL COMMENT '订单编号，全局唯一',
+    product_id BIGINT UNSIGNED NOT NULL COMMENT '商品ID，对应products.id',
+    product_title VARCHAR(200) NOT NULL COMMENT '下单时的商品标题快照',
+    quantity INT UNSIGNED NOT NULL COMMENT '购买数量',
+    unit_price DECIMAL(10, 2) NOT NULL COMMENT '下单时的商品单价，单位：元',
+    total_amount DECIMAL(12, 2) NOT NULL COMMENT '订单总金额，单位：元',
+    buyer_name VARCHAR(64) NOT NULL COMMENT '买家姓名',
+    buyer_phone VARCHAR(20) NOT NULL COMMENT '买家联系电话',
+    address VARCHAR(255) NOT NULL COMMENT '收货地址',
+    status TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态：0-待支付，1-已支付，2-已取消',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    paid_at DATETIME NULL COMMENT '支付时间，未支付时为NULL',
+    update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(64) NULL COMMENT '创建人',
+    updated_by VARCHAR(64) NULL COMMENT '更新人',
+    is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-否，1-是',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_orders_order_no (order_no),
+    KEY idx_orders_product_id (product_id),
+    KEY idx_orders_status_deleted (status, is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单表';
