@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>校园好物市集</title>
+  <link rel="stylesheet" href="./src/style.css">
+  <link rel="stylesheet" href="./src/shop.css">
+  <script type="module" src="./src/main.js"></script>
+</head>
+<body>
+  <header class="site-header">
+  <div class="site-header-inner">
+    <h1>校园好物市集</h1>
+    <nav class="page-nav" aria-label="页面导航">
+      <a href="./index.html" aria-current="page">商品管理</a>
+      <a href="./shop.html">商品选购</a>
+    </nav>
+  </div>
+  </header>
+
+  <main class="layout">
+    <nav class="panel categories" aria-labelledby="categories-heading">
+      <h2 id="categories-heading">商品分类</h2>
+      <button type="button" data-category="" aria-pressed="true">全部</button>
+      <button type="button" data-category="数码" aria-pressed="false">数码</button>
+      <button type="button" data-category="图书" aria-pressed="false">图书</button>
+      <button type="button" data-category="服饰" aria-pressed="false">服饰</button>
+      <button type="button" data-category="食品" aria-pressed="false">食品</button>
+      <button type="button" data-category="文具" aria-pressed="false">文具</button>
+    </nav>
+
+    <section class="panel products-panel" aria-labelledby="products-heading">
+      <h2 id="products-heading">商品列表</h2>
+
+      <form id="search-form" class="search">
+        <input
+          id="keyword"
+          type="search"
+          list="product-suggestions"
+          placeholder="搜索商品名称"
+          aria-label="搜索商品名称"
+        >
+        <datalist id="product-suggestions"></datalist>
+        <button type="submit">搜索</button>
+      </form>
+
+      <div class="list-toolbar">
+        <p id="list-message" role="status">加载中…</p>
+        <button id="clear-search" class="secondary" type="button" hidden>
+          清空筛选
+        </button>
+      </div>
+
+      <div
+        id="table-wrapper"
+        class="table-wrapper"
+        role="region"
+        aria-label="商品列表，可滚动"
+        tabindex="0"
+        hidden
+      >
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">商品名称</th>
+              <th scope="col">价格</th>
+              <th scope="col">库存</th>
+              <th scope="col">分类</th>
+              <th scope="col">状态</th>
+              <th scope="col">操作</th>
+            </tr>
+          </thead>
+          <tbody id="product-rows"></tbody>
+        </table>
+      </div>
+
+      <p id="action-message" role="status"></p>
+    </section>
+
+    <section class="panel publish-panel" aria-labelledby="publish-heading">
+      <h2 id="publish-heading">发布商品</h2>
+
+	  <form id="publish-form" class="publish" novalidate>
+		<label>
+		  标题
+		  <input name="title" required aria-describedby="title-error">
+		  <span id="title-error" class="field-error" role="alert"></span>
+		</label>
+
+		<div class="publish-fields">
+		  <label>
+			价格（元）
+		  <input name="price" inputmode="decimal" placeholder="例如 19.90" required aria-describedby="price-error">
+          <span id="price-error" class="field-error" role="alert"></span>
+          </label>
+
+          <label>
+            库存
+          <input name="stock" type="number" min="0" max="999" step="1" required aria-describedby="stock-error">
+          <span id="stock-error" class="field-error" role="alert"></span>
+          </label>
+        </div>
+
+        <label>
+          分类
+          <select name="category" required>
+            <option value="" disabled selected>请选择分类</option>
+            <option>数码</option>
+            <option>图书</option>
+            <option>服饰</option>
+            <option>食品</option>
+            <option>文具</option>
+          </select>
+        </label>
+
+        <label>
+          描述
+          <textarea name="description" rows="4" maxlength="200"></textarea>
+        </label>
+
+        <button id="publish-button" type="submit">发布商品</button>
+        <p id="publish-message" role="status"></p>
+      </form>
+    </section>
+
+    <dialog
+      id="publish-dialog"
+      aria-labelledby="publish-dialog-heading"
+      aria-describedby="published-product"
+    >
+      <h2 id="publish-dialog-heading">发布成功</h2>
+      <p id="published-product"></p>
+      <form method="dialog">
+        <button type="submit" autofocus>确定</button>
+      </form>
+    </dialog>
+  </main>
+</body>
+</html>

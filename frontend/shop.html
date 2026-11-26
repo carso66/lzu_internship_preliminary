@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>商品选购 · 校园好物市集</title>
+  <link rel="stylesheet" href="./src/style.css">
+  <link rel="stylesheet" href="./src/shop.css">
+  <script type="module" src="./src/shop.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1>校园好物市集</h1>
+      <nav class="page-nav" aria-label="页面导航">
+        <a href="./index.html">商品管理</a>
+        <a href="./shop.html" aria-current="page">商品选购</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shop">
+    <section class="panel" aria-labelledby="shop-heading">
+      <h2 id="shop-heading">商品选购</h2>
+
+      <label for="shop-search">搜索商品名称</label>
+      <input id="shop-search" class="shop-search" type="search" placeholder="例如：耳机">
+
+      <p id="shop-message" role="status">加载商品中…</p>
+
+      <div id="shop-products" class="shop-table" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">商品名称</th>
+              <th scope="col">单价</th>
+              <th scope="col">库存</th>
+              <th scope="col">状态</th>
+              <th scope="col">操作</th>
+            </tr>
+          </thead>
+          <tbody id="shop-product-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="orders-heading">
+      <h2 id="orders-heading">订单记录</h2>
+      <p id="orders-message" role="status">加载订单中…</p>
+
+      <div id="orders-table" class="shop-table" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">订单号</th>
+              <th scope="col">商品名称</th>
+              <th scope="col">数量</th>
+              <th scope="col">金额</th>
+              <th scope="col">状态</th>
+              <th scope="col">操作</th>
+            </tr>
+          </thead>
+          <tbody id="order-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <dialog id="purchase-dialog" aria-labelledby="purchase-heading">
+      <h2 id="purchase-heading">确认下单</h2>
+
+      <form id="purchase-form" novalidate>
+        <div class="purchase-summary">
+          <strong id="purchase-product"></strong>
+          <p id="purchase-details"></p>
+        </div>
+
+        <label for="purchase-quantity">购买数量</label>
+        <input
+          id="purchase-quantity"
+          type="number"
+          min="1"
+          step="1"
+          value="1"
+          required
+          aria-describedby="purchase-error"
+        >
+
+        <p class="purchase-total">
+          <span>预估总价</span>
+          <strong id="purchase-estimate">—</strong>
+        </p>
+
+        <p id="purchase-error" class="field-error" role="alert"></p>
+
+        <div class="dialog-actions">
+          <button id="cancel-purchase" class="secondary" type="button">取消</button>
+          <button id="confirm-purchase" type="submit">确认下单</button>
+        </div>
+      </form>
+
+      <div id="purchase-result" hidden>
+        <p id="purchase-result-message" role="status"></p>
+        <div class="dialog-actions">
+          <button id="close-result" type="button">确定</button>
+        </div>
+      </div>
+    </dialog>
+    <dialog id="payment-dialog" aria-labelledby="payment-heading">
+      <h2 id="payment-heading">订单支付</h2>
+      <dl class="payment-summary">
+        <dt>订单编号</dt><dd id="payment-order"></dd>
+        <dt>需支付金额</dt><dd id="payment-amount"></dd>
+      </dl>
+      <form id="payment-form">
+        <fieldset id="payment-methods">
+          <legend>选择支付方式</legend>
+          <label><input type="radio" name="method" value="alipay" checked> 支付宝</label>
+          <label><input type="radio" name="method" value="wechat"> 微信支付</label>
+        </fieldset>
+        <div class="payment-preview">
+          <canvas id="payment-qr" width="132" height="132" aria-hidden="true"></canvas>
+          <p id="payment-qr-label"></p>
+          <p>仅用于演示，无需扫码，不会扣款</p>
+        </div>
+        <p id="payment-message" role="status"></p>
+        <div class="dialog-actions">
+          <button id="close-payment" class="secondary" type="button">关闭</button>
+          <button id="confirm-payment" type="submit">开始模拟支付</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="duplicate-payment-dialog"
+      aria-labelledby="duplicate-payment-heading"
+      aria-describedby="duplicate-payment-message">
+      <h2 id="duplicate-payment-heading">支付提示</h2>
+      <p id="duplicate-payment-message"></p>
+      <form method="dialog" class="dialog-actions">
+        <button type="submit" autofocus>确定</button>
+      </form>
+    </dialog>
+  </main>
+</body>
+</html>
