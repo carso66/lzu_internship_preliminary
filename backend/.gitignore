@@ -1,0 +1,26 @@
+# 构建产物
+target/
+*.class
+
+# H2 文件数据库与运行时文件
+*.mv.db
+*.trace.db
+*.lock.db
+.h2/
+
+# 环境变量与密钥
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# IDE / 系统
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log

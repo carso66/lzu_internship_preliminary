@@ -1,0 +1,23 @@
+spring:
+  # 测试环境使用独立命名库：每个 Spring 测试上下文通过 random.uuid 拿到各自的库，
+  # 避免 schema.sql 的 DROP TABLE 清空其他上下文正在使用的数据。
+  datasource:
+    url: jdbc:h2:mem:marketplace-test-${random.uuid};DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+  jackson:
+    mapper:
+      allow-coercion-of-scalars: false
+    deserialization:
+      accept-float-as-int: false
+
+logging:
+  level:
+    root: warn

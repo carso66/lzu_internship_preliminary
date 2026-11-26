@@ -1,0 +1,47 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: lzu-marketplace
+
+  # H2 内存库：每次启动从零开始，评审无需任何外部依赖即可运行
+  datasource:
+    url: jdbc:h2:mem:marketplace;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  h2:
+    console:
+      enabled: false
+
+  # 数据库初始化：唯一 SQL 源文件 backend/schema.sql 由 Maven 复制到 classpath
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+  # 未匹配的路径交由 GlobalExceptionHandler 统一返回 {code,message,data}，
+  # 而不是 Spring 默认的 Whitelabel 错误页 / 裸 404。
+  # （Spring Boot 3.2+ 默认就会抛 NoResourceFoundException，无需再配置已废弃的
+  #   spring.mvc.throw-exception-if-no-handler-found）
+  web:
+    resources:
+      add-mappings: false
+
+  # 严格整数校验：官方要求 quantity="2" 这类字符串必须按 400 处理，
+  # 不能让 Jackson 把 JSON 字符串静默转成数字（详见 docs/P01-需求分析.md §5.4）
+  # 两个开关覆盖不同特性，缺一不可：
+  #   allow-coercion-of-scalars —— 字符串 <-> 数字/布尔
+  #   accept-float-as-int       —— 浮点数 -> 整数
+  # 注意：这两项只作用于 JSON 请求体，不影响 URL 查询参数（?page=1 仍正常）。
+  jackson:
+    mapper:
+      allow-coercion-of-scalars: false
+    deserialization:
+      accept-float-as-int: false
+
+logging:
+  level:
+    root: info
