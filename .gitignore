@@ -18,6 +18,7 @@ ENV/
 
 ## Python 测试、覆盖率与静态检查
 .pytest_cache/
+testing/自动化/reports/
 .hypothesis/
 .coverage
 .coverage.*
