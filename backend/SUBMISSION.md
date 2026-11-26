@@ -1,4 +1,10 @@
-# 提交说明（L0＋L1＋L2 鉴权与测试）
+# 提交说明（SUBMISSION）
+
+**项目**：校园好物市集 · 后端服务
+
+**技术栈**：Java 17 编译目标 / Spring Boot 4.2.0 / JdbcTemplate / H2
+
+**交付目录**：`backend/`
 
 ## 基本信息
 
@@ -9,22 +15,73 @@
 | 方向 | 后端 `[BE]`              |
 | 分支 | `220250946261`         |
 | 当前范围 | L0 商品管理、L1 订单；L2 仅申报 L2-11 最简鉴权、L2-12 自动化测试 |
-| 实际投入 | 未单独统计，待本人补充            |
+| 实际投入 | 12 小时 |
 
-本文件是阶段性提交说明。最终提交前继续完善设计和 AI 使用记录。
+本次完成商品管理、事务下单、订单查询和最简登录鉴权。L2 选择 **L2-11 最简鉴权、L2-12 自动化测试**。实现与取舍见 [DESIGN.md](DESIGN.md)，运行与验收方法如下。
+
+## 交付总览
+
+这份文件是本次后端提交的总入口：汇总实现范围、文件位置、启动方法、接口约定和验收证据。源码、SQL、脚本和说明以仓库中的独立文件交付，评审可从下表定位。
+
+| 交付内容 | 位置 | 当前状态与用途 |
+|---|---|---|
+| Maven 工程 | [pom.xml](pom.xml)、[mvnw.cmd](mvnw.cmd)、[maven-wrapper.properties](.mvn/wrapper/maven-wrapper.properties) | 已提供依赖、Java 17 编译目标与 Maven Wrapper |
+| 手工请求样例 | [product-test.json](product-test.json) | 虚构商品发布 JSON，供手动请求使用；验收脚本自行创建数据，不依赖该文件 |
+| 数据库定义 | [schema.sql](schema.sql) | products、orders 两表，包含主键、唯一约束、外键、CHECK 和常规查询索引 |
+| 应用配置 | [application.properties](src/main/resources/application.properties) | H2 内存库、SQL 初始化、H2 控制台 |
+| Java 实现 | [src/main/java/com/example/demo](src/main/java/com/example/demo/) | 健康检查、商品、订单、登录、统一响应与异常处理 |
+| 自动化测试 | [src/test/java/com/example/demo](src/test/java/com/example/demo/) | 订单 5 项、鉴权 5 项、应用启动 1 项 |
+| HTTP 验收脚本 | [scripts](scripts/) | L0 8 项、L1 22 项、L2 鉴权 11 项，可重复准备测试数据 |
+| 实际验证记录 | [test-evidence](test-evidence/) | 当前提交版本实际生成的报告与控制台输出 |
+| 设计说明 | [DESIGN.md](DESIGN.md) | 对应题目模板的八项问题，解释拆分、数据和业务决策 |
+| AI 使用说明与平台日志 | [AI_USAGE.md](AI_USAGE.md)、[ai-evidence](ai-evidence/README.md) | 已整理使用说明、脱敏对话、模型统计和索引；费用按本人填写的 8.82 元记录，声明由本人确认 |
+
+### 项目结构
+
+```text
+backend/
+├── pom.xml / mvnw / mvnw.cmd / .mvn/wrapper/
+├── schema.sql
+├── src/main/java/com/example/demo/
+│   ├── DemoApplication.java / HealthController.java
+│   ├── controller/   AuthController、ProductController、OrderController
+│   ├── dto/          LoginRequest/Response、CreateProductRequest、
+│   │                UpdateProductStatusRequest、CreateOrderRequest
+│   ├── service/      AuthService、ProductService、OrderService
+│   ├── repository/   ProductRepository、OrderRepository
+│   ├── model/        Product、Order
+│   ├── common/       ApiResponse、PageResult、ErrorCode、
+│   │                BizException、GlobalExceptionHandler
+│   └── config/       JacksonConfig、RequireToken、TokenInterceptor、WebConfig
+├── src/main/resources/application.properties
+├── src/test/java/com/example/demo/
+│   ├── DemoApplicationTests.java
+│   ├── OrderIntegrationTest.java
+│   └── AuthIntegrationTest.java
+├── scripts/test-l0-validation.ps1
+├── scripts/test-l1-validation.ps1
+├── scripts/test-l2-validation.ps1
+├── test-evidence/
+└── SUBMISSION.md / DESIGN.md / AI_USAGE.md
+```
+
+L2 按题目选择两项申报；订单的事务、库存保护和相关回归测试随 L1 一并保留。
+
 
 ## 环境
 
 | 项 | 内容 |
 |---|---|
-| 操作系统 | Windows；具体版本待本人补充 |
-| Java | 编译目标 Java 17；运行需要 JDK 17 或以上，实际运行版本以 `java -version` 为准 |
+| 操作系统 | Windows，25H2，系统 build 26200.9711 |
+| Java | 编译目标 Java 17；运行需要 JDK 17 或以上，本次验证使用 JDK 21.0.8 |
 | 框架 | Spring Boot `4.2.0` |
 | 数据访问 | Spring JDBC / JdbcTemplate |
-| 数据库 | H2 内存数据库 |
+| 数据库 | H2 内存数据库，版本 2.5.252 |
 | 构建 | Maven；仓库提供 Maven Wrapper，分发版本 `3.10.1` |
 
-首次构建需要能够访问 Maven 依赖仓库。使用 Maven Wrapper 无需另行安装 Maven。
+本工程沿用当前已运行验证的 Spring Boot 4.2.0 与 Jackson 3。题目中的 Spring Boot 3.x 是入门示例；接口和验收规则仍按题目实现，依赖及异常 API 按工程实际版本适配。
+
+首次构建需要能够访问 Maven 依赖仓库。使用 Maven Wrapper 无需另行安装 Maven。仓库使用 only-script 类型的 Wrapper，mvnw、mvnw.cmd 和 .mvn/wrapper/maven-wrapper.properties 已跟踪，无需提交 maven-wrapper.jar。
 
 ## 启动方式
 
@@ -66,6 +123,24 @@ Password: 留空
 | L0 | 5/5 项已实现：建表、发布商品、列表筛选分页、详情、上下架 |
 | L1 | 下单、事务扣库存、订单详情和手机号分页查询均已实现 |
 | L2 | 仅申报 L2-11 最简鉴权、L2-12 自动化测试；不提交支付链路或索引实验 |
+
+## 题目要求与实现对应
+
+| 层级与要求 | 当前实现 | 验收入口 |
+|---|---|---|
+| L0：建表 | 两张业务表及约束，应用启动自动初始化 | schema.sql；启动后在 H2 控制台查表 |
+| L0：发布商品 | 校验字段与类型，服务端生成 ID/状态/时间，返回 201 | ProductController/Service；L0 脚本发布成功与错误输入检查 |
+| L0：筛选分页 | keyword/status/category 可组合，返回筛选后 total 与 items | ProductRepository.findPage；下文提供组合查询与数据核对方法 |
+| L0：商品详情 | 正常 200，不存在 40401 | GET products/{id}；订单与鉴权测试也用详情核对库存 |
+| L0：上下架 | on/off 校验，维护更新时间，库存和价格不因上下架改变 | 鉴权集成测试；L1/L2 HTTP 脚本 |
+| L1：创建订单 | 参数校验、数据库价格、金额快照、事务扣库存，成功 201 | OrderIntegrationTest；L1 22 项脚本 |
+| L1：订单详情 | 按订单号回读快照，不存在 40401 | 正常下单和查询集成用例 |
+| L1：订单分页 | buyerPhone 必填、统一 strip、稳定排序、边界页 | 手机号分页集成用例与脚本 |
+| L1：异常及一致性 | 参数错误不改数据；真实 INSERT 失败时库存恢复 | 参数、溢出与真实数据库回滚用例 |
+| L2-11：最简鉴权 | 固定账号登录发随机 token，两个商品写接口拒绝无效 token | AuthIntegrationTest；L2 鉴权 11 项脚本 |
+| L2-12：自动化测试 | 一条 mvn test 覆盖正常下单、库存不足、quantity=0，并补充其他回归 | 测试源码与 test-evidence 中的实际报告 |
+
+
 
 ## 已实现接口
 
@@ -176,9 +251,106 @@ GET /api/products?keyword=Notebook&status=on&category=Stationery&page=1&pageSize
 | 41501 | 415 | 请求内容类型不支持 |
 | 50000 | 500 | 服务内部错误 |
 
+## 完整操作示例：从登录到下单查询
+
+先在第一个终端按前述命令启动服务。以下代码在另一个 PowerShell 中执行；示例使用虚构买家标识，每次生成新值。HTTP 状态以接口表为准，Invoke-RestMethod 的变量保存 JSON 响应体。
+
+### 1. 健康检查与登录
+
+```powershell
+$baseUrl = "http://localhost:8080"
+Invoke-RestMethod -Method Get -Uri "$baseUrl/api/health"
+
+$loginBody = @{ username="demo"; password="demo123" } | ConvertTo-Json -Compress
+$login = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/auth/login" -ContentType "application/json" -Body $loginBody
+$headers = @{ Authorization = "Bearer " + $login.data.token }
+```
+
+健康检查应为 code=0；登录 data.token 应为非空字符串。后面的商品写请求复用 headers。
+
+### 2. 发布一件商品并查询
+
+```powershell
+$productBody = @{
+    title="NotebookDemo"
+    price=1990
+    stock=5
+    category="Stationery"
+    sellerName="Demo seller"
+    description="Demo product"
+    imageUrl=""
+} | ConvertTo-Json -Compress
+
+$product = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/products" -Headers $headers -ContentType "application/json" -Body $productBody
+$productId = $product.data.id
+Invoke-RestMethod -Method Get -Uri "$baseUrl/api/products/$productId"
+Invoke-RestMethod -Method Get -Uri "$baseUrl/api/products?keyword=NotebookDemo&status=on&category=Stationery&page=1&pageSize=10"
+```
+
+发布成功应返回 code=0、生成的 ID、status=on、price=1990、stock=5。列表包含该商品；如果先前已运行同名示例，total 可能大于 1，不能固定假设数据库只含本条记录。
+
+### 3. 下架后再上架
+
+```powershell
+Invoke-RestMethod -Method Patch -Uri "$baseUrl/api/products/$productId/status" -Headers $headers -ContentType "application/json" -Body '{"status":"off"}'
+Invoke-RestMethod -Method Patch -Uri "$baseUrl/api/products/$productId/status" -Headers $headers -ContentType "application/json" -Body '{"status":"on"}'
+```
+
+两次成功均为 code=0，状态按请求改变，库存仍为 5，价格仍为 1990。下单前已恢复 on。
+
+### 4. 下单、查询订单和最终库存
+
+```powershell
+$buyerPhone = "DEMO-" + [guid]::NewGuid().ToString("N").Substring(0, 8)
+$orderBody = @{
+    productId=$productId
+    quantity=2
+    buyerName="Demo buyer"
+    buyerPhone=$buyerPhone
+    address="Demo address"
+    remark=""
+} | ConvertTo-Json -Compress
+
+$order = Invoke-RestMethod -Method Post -Uri "$baseUrl/api/orders" -ContentType "application/json" -Body $orderBody
+$orderNo = $order.data.orderNo
+Invoke-RestMethod -Method Get -Uri "$baseUrl/api/orders/$orderNo"
+Invoke-RestMethod -Method Get -Uri "$baseUrl/api/orders?buyerPhone=$buyerPhone&page=1&pageSize=10"
+Invoke-RestMethod -Method Get -Uri "$baseUrl/api/products/$productId"
+```
+
+在本示例商品没有其他写入的前提下，预期 unitPrice=1990、quantity=2、totalAmount=3980、status=created、paidAt=null；商品余量为 3。手机号是本次新生成值，列表应能查到本单。
+
+### 5. 查看原始 HTTP 状态与错误响应
+
+已登录的当前 PowerShell 中，可用 curl.exe 直接查看原始状态行。例如发布时把整数 stock 错写成字符串：
+
+```powershell
+$token = $login.data.token
+'{"title":"BadType","price":1990,"stock":"5","category":"Stationery","sellerName":"Demo seller"}' |
+    curl.exe -i "$baseUrl/api/products" -H "Content-Type: application/json" -H "Authorization: Bearer $token" --data-binary "@-"
+```
+
+预期 HTTP 400、code=40001，message 指出 stock 字段类型错误。下面是其他应核对的分支；错误请求前后可查询商品库存和订单数量对照，测试时避免其他客户端同时写入。
+
+| 条件 | HTTP / code | 应观察到的数据变化 |
+|---|---|---|
+| 商品写请求不带 token 或使用未知 token | 401 / 40101 | 不新增商品，不改变商品状态 |
+| quantity=0、-1、null、字符串或小数 | 400 / 40001 | 库存不变，不新增订单 |
+| 数量超过现有库存 | 409 / 40901 | 库存不变，不新增订单 |
+| 已下架商品下单 | 409 / 40902 | 库存不变，不新增订单 |
+| 正整数形式但不存在的商品 ID | 404 / 40401 | 不新增订单 |
+| 不存在的订单号 | 404 / 40401 | 查询不修改数据 |
+| page=0 或 pageSize=51 | 400 / 40001 | 查询不修改数据 |
+| 价格和数量的乘积溢出 long | 400 / 40001 | 在扣库存前失败 |
+
+以上为可执行操作示例；本次实际测试报告和控制台输出统一收录于 test-evidence。
+
+
 ## 测试与复核
 
 ### Maven 自动化测试
+
+本次验证在本人本机完成，导出和核验结果；指定平台模型负责静态审查。
 
 在 backend 工作目录运行全部测试：
 
@@ -191,7 +363,6 @@ GET /api/products?keyword=Notebook&status=on&category=Stationery&page=1&pageSize
 - `test-evidence/com.example.demo.OrderIntegrationTest.txt`：5 项，0 失败、0 错误、0 跳过。
 - `test-evidence/com.example.demo.DemoApplicationTests.txt`：1 项，0 失败、0 错误、0 跳过。
 - `test-evidence/com.example.demo.AuthIntegrationTest.txt`：5 项，0 失败、0 错误、0 跳过。
-- 本次精简提交版本在隔离副本实际运行 mvn -B -ntp clean test，合计 11 项通过。报告和摘要均为该版本本次实际生成文件。
 
 OrderIntegrationTest 使用真实 HTTP、随机本地端口和独立 H2 数据库 `order_integration_test`，不会操作正在运行的 8080 服务的数据库。测试类和方法没有外层测试事务，服务事务由 Spring 管理的 OrderService.create 创建。
 
@@ -217,6 +388,19 @@ OrderIntegrationTest 使用真实 HTTP、随机本地端口和独立 H2 数据�
 
 5 项验证：两次登录 token 不同且均有效；错误账号密码与字段类型；缺少/非法 token 对两处写接口返回统一 401 且数据不变；合法 token 下发布/上下架及原参数校验；查询和下单仍可匿名。使用独立 auth_integration_test 内存库、真实 HTTP 和随机端口。
 
+### 鉴权测试的逐项内容
+
+| 方法 | 请求场景 | 核对内容 |
+|---|---|---|
+| loginReturnsDifferentRandomTokensAndBothRemainValid | 两次正确账号登录 | token 格式、两次不同、两者均可发布商品 |
+| invalidLoginNeverReturnsToken | 错账号/密码、缺失字段、数字/布尔等类型错误 | 对应 40101/40001，失败响应 data=null |
+| missingOrInvalidTokenBlocksBothWritesWithoutChangingData | 两处商品写接口使用缺失/错误 header | 统一 40101；商品总数、状态和库存保持原样 |
+| validTokenAllowsStatusChangesAndPreservesParameterValidation | 合法 token 发布/上下架，附带非法业务参数 | 合法请求成功；业务错误仍按 400/404 处理 |
+| readsAndOrdersRemainAccessibleWithoutToken | 匿名健康检查、商品查询、订单创建与查询 | 不错误扩大鉴权范围，正常下单仍扣库存 |
+
+鉴权共 5 个测试方法，部分方法循环验证多组输入。JUnit 方法总数与 HTTP 脚本检查数分别统计。
+
+
 ### 订单库存并发回归
 
 ```powershell
@@ -229,9 +413,33 @@ OrderIntegrationTest 使用真实 HTTP、随机本地端口和独立 H2 数据�
 
 申报依据为上述 5 项 JUnit 业务集成测试。其中明确覆盖正常下单扣库存、库存不足 409、quantity=0 返回 400，同时核对业务码和数据库最终状态。全部测试可在 backend 中通过一条 `mvn test` 运行。
 
+### 实际测试摘要
+
+以下摘自本次归档的 Maven 输出，完整内容见 test-evidence/maven-output.txt：
+
+```text
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+```
+
+| 测试类 | 方法数 | 核心覆盖 |
+|---|---:|---|
+| OrderIntegrationTest | 5 | 正常下单、服务端算价与快照、异常输入、订单分页、真实 SQL 失败回滚和库存并发回归 |
+| AuthIntegrationTest | 5 | 随机 token、错误登录、两处写接口保护、拒绝后数据不变、合法业务与匿名查询/下单 |
+| DemoApplicationTests | 1 | 应用上下文启动 |
+| 合计 | 11 | 0 失败、0 错误、0 跳过 |
+
+L2-12 的三个必测场景与源码对应：
+
+| 题目要求 | 测试位置 | 核对内容 |
+|---|---|---|
+| 正常下单扣库存 | normalOrderUsesDatabasePriceAndPreservesSnapshots | 按请求数量扣减库存、金额来自数据库、订单快照保留 |
+| 库存不足返回 409 | invalidOrdersDoNotChangeStockOrCreateOrders | HTTP 409/40901，库存与订单数不变 |
+| quantity=0 返回 400 | 同上方法中的零数量输入 | HTTP 400/40001，未产生数据写入 |
+
 ### 手动接口验收
 
-本次将只含两项 L2 的提交版本启动到随机本地端口 http://localhost:50812，实际运行三份脚本：L0 8 项、L1 22 项、L2 鉴权 11 项全部通过，共 41 项检查。原始输出与退出码记录归档于 test-evidence。脚本与 JUnit 数量分开统计。
+本次在本人本机，将只含两项 L2 的提交版本启动到随机本地端口 http://localhost:50812，并执行三份脚本：L0 8 项、L1 22 项、L2 鉴权 11 项全部通过，共 41 项检查。原始输出与退出码记录归档于 test-evidence。脚本与 JUnit 数量分开统计。
 
 默认部署端口和三份脚本的 BaseUrl 都是 8080。本次为避免占用现有服务，启动时显式传 --server.port=0 获取随机端口，再用 -BaseUrl 传给脚本，不要求更改默认配置。
 
@@ -267,15 +475,49 @@ SELECT order_no, product_id, quantity, unit_price, total_amount, status
 FROM orders ORDER BY created_at DESC, id DESC;
 ```
 
-## 未完成和已知限制
+## 验证文件索引与数据库复核
 
-- 当前只提供商品、订单和最简登录；支付链路、payments 表及索引实验不在本次提交范围。
-- 仅申报 L2-11、L2-12，两项合计按题目封顶；保留的 L1 并发库存回归不单独申报 L2-10。
-- 内存数据库在应用进程退出后丢失数据，需要重新准备手动测试数据。
-- 当前是固定演示账号的 token 鉴权，没有用户表或角色；订单查询不校验用户归属。
-- 列表 COUNT 和 SELECT 是两次查询，没有承诺并发写入下共享同一查询快照。
-- 并发测试验证了响应和最终数据，未单独测量行锁的阻塞时长。
-- AI_USAGE 最终总结、平台模型和费用记录由本人随后补充；本次不提交其本地草稿更新。
-- 实际投入时长尚未统计，不填推测数字。
+| 文件 | 内容 |
+|---|---|
+| [maven-test-summary.txt](test-evidence/maven-test-summary.txt) | 各测试类统计、11 项总数、BUILD SUCCESS、实际完成时间 |
+| [maven-output.txt](test-evidence/maven-output.txt) | 本轮 Maven 的原始控制台输出 |
+| [OrderIntegrationTest 报告](test-evidence/com.example.demo.OrderIntegrationTest.txt) | 5 项订单集成测试统计 |
+| [AuthIntegrationTest 报告](test-evidence/com.example.demo.AuthIntegrationTest.txt) | 5 项鉴权集成测试统计 |
+| [DemoApplicationTests 报告](test-evidence/com.example.demo.DemoApplicationTests.txt) | 1 项应用启动测试统计 |
+| [http-summary.txt](test-evidence/http-summary.txt) | 三份脚本的目标地址、退出码与最终统计 |
+| [L0 输出](test-evidence/test-l0-validation-output.txt) | 8 项 HTTP 检查 |
+| [L1 输出](test-evidence/test-l1-validation-output.txt) | 22 项 HTTP 检查 |
+| [L2 输出](test-evidence/test-l2-validation-output.txt) | 11 项鉴权 HTTP 检查 |
+| [归档说明](test-evidence/README.txt) | 运行来源、版本与统计口径 |
 
-提交范围限于 backend。保留原题目 README；target、IDE 配置和数据库数据文件不属于提交内容。test-evidence 仅保留明确选取的 TXT 测试报告，不包含 Surefire XML 环境属性。
+H2 控制台可执行以下查询复核当前数据。内存库属于当前应用进程，独立 JUnit 测试库不会在主服务控制台中出现。
+
+```sql
+SELECT COUNT(*) AS product_count FROM products;
+SELECT id, title, price, stock, status FROM products ORDER BY id DESC;
+
+SELECT order_no, product_id, product_title, quantity,
+       unit_price, total_amount, buyer_phone, status, paid_at
+FROM orders ORDER BY created_at DESC, id DESC;
+
+SELECT buyer_phone, COUNT(*) AS order_count
+FROM orders GROUP BY buyer_phone;
+
+SELECT order_no FROM orders
+WHERE total_amount <> unit_price * CAST(quantity AS BIGINT);
+```
+
+最后一条金额一致性检查预期为空；它不能替代“失败请求未扣库存”等事务测试。临时测试 CHECK 约束只存在于对应隔离测试库，用例结束时删除，不应手动加到主服务库。
+
+
+## 提交范围与运行说明
+
+| 项目 | 说明 |
+|---|---|
+| 本次选做 | 仅申报 L2-11 最简鉴权和 L2-12 自动化测试；支付、索引实验不纳入本次范围 |
+| 内存数据 | H2 数据和 token 都在当前进程内，应用重启后需重新准备商品并登录 |
+| 接口保护范围 | 发布商品、商品上下架需要有效 token；查询和下单按题目保持公开 |
+| 分页查询 | COUNT 与分页 SELECT 共用筛选条件，分别执行；不提供跨请求快照读 |
+| AI 材料 | AI_USAGE.md 与 ai-evidence 已整理；费用按本人填写的 8.82 元记录，声明由本人确认 |
+
+提交文件位于 backend，保留原题目 README。源码、SQL、Maven 配置及 Wrapper、测试源码、HTTP 脚本、实际报告和提交文档一并交付。target、IDE 配置、数据库数据文件和 .env 不纳入仓库。
