@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.marketplace.mapper.PaymentMapper">
+
+    <insert id="insert" parameterType="com.example.marketplace.domain.Payment">
+        INSERT INTO payments (
+            payment_id,
+            order_id,
+            method,
+            amount,
+            paid_at
+        )
+        VALUES (
+            #{paymentId},
+            #{orderId},
+            #{method},
+            #{amount},
+            #{paidAt}
+        )
+    </insert>
+
+    <select id="findByPaymentId" resultType="com.example.marketplace.domain.Payment">
+        SELECT p.payment_id,
+               p.order_id,
+               o.order_no,
+               p.method,
+               p.amount,
+               p.paid_at
+        FROM payments p
+        JOIN orders o ON o.id = p.order_id
+        WHERE p.payment_id = #{paymentId}
+    </select>
+
+    <!-- 支付插入触发唯一键冲突后，用该查询区分重复支付和支付号碰撞。 -->
+    <select id="existsByOrderId" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM payments
+            WHERE order_id = #{orderId}
+        )
+    </select>
+</mapper>

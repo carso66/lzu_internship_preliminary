@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.marketplace.mapper.ProductMapper">
+
+    <!-- 列表和计数共用同一组过滤条件，避免分页数据与总数口径不一致。 -->
+    <sql id="productFilters">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND title LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+        </where>
+    </sql>
+
+    <insert id="insert" parameterType="com.example.marketplace.domain.Product"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO products (title, price, stock, category, description, seller_name, status)
+        VALUES (#{title}, #{price}, #{stock}, #{category}, #{description}, #{sellerName}, #{status})
+    </insert>
+
+    <select id="findById" resultType="com.example.marketplace.domain.Product">
+        SELECT id, title, price, stock, category, description, seller_name, status, created_at
+        FROM products
+        WHERE id = #{id}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE products
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 条件更新由数据库原子判断库存；影响 0 行时由服务层细分失败原因。 -->
+    <update id="decreaseStockIfAvailable">
+        UPDATE products
+        SET stock = stock - #{quantity}
+        WHERE id = #{id}
+          AND status = 'on'
+          AND stock >= #{quantity}
+    </update>
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM products
+        <include refid="productFilters"/>
+    </select>
+
+    <select id="findPage" resultType="com.example.marketplace.domain.Product">
+        SELECT id, title, price, stock, category, description, seller_name, status, created_at
+        FROM products
+        <include refid="productFilters"/>
+        ORDER BY id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

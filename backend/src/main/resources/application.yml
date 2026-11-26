@@ -1,0 +1,20 @@
+# H2 内存库在 JVM 生命周期内保留，进程重启后数据会清空。
+spring:
+  datasource:
+    url: jdbc:h2:mem:marketplace;DB_CLOSE_DELAY=-1
+    username: sa
+  jackson:
+    # 拒绝浮点数隐式转为整数金额，并禁止数字或布尔值隐式转为字符串。
+    deserialization:
+      accept-float-as-int: false
+    mapper:
+      allow-coercion-of-scalars: false
+  sql:
+    init:
+      schema-locations: classpath:schema.sql
+
+# 从 classpath 加载 MyBatis XML，并自动把下划线列名映射为驼峰属性。
+mybatis:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
