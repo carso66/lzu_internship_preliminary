@@ -1,0 +1,78 @@
+{
+  "generated_at": "2026-11-25 16:19:10",
+  "endpoint": "https://api.xytoken.xyb2b.com/v1/chat/completions",
+  "calls_total": 5,
+  "calls_ok": 5,
+  "models_used": [
+    "deepseek-v4-pro",
+    "glm-5.3",
+    "kimi-k3.1-pro",
+    "qwen3.8-flash"
+  ],
+  "prompt_tokens": 5692,
+  "completion_tokens": 45885,
+  "total_tokens": 51577,
+  "cost_est_cny": 0.112642,
+  "scenarios": [
+    {
+      "sid": "A",
+      "title": "把缺陷原始证据整理成对照表",
+      "model": "qwen3.8-flash",
+      "tier": "Flash 级",
+      "pin": 1643,
+      "pout": 16141,
+      "cost": 0.004988344627,
+      "elapsed": 234.19,
+      "rid": "chatcmpl-11203366-df1c-990c-9662-8b99de71b8e9",
+      "reasoning": 15486
+    },
+    {
+      "sid": "B",
+      "title": "复核 17 条缺陷的严重程度定级是否合理",
+      "model": "deepseek-v4-pro",
+      "tier": "Pro 级",
+      "pin": 813,
+      "pout": 6483,
+      "cost": 0.02011161126,
+      "elapsed": 95.15,
+      "rid": "0217955942525634f08adabc2a0b7ee0ad3a2fcb671c8c4290844",
+      "reasoning": 6248
+    },
+    {
+      "sid": "C",
+      "title": "独立审查 legacy 订单/支付代码，与我的审查结论对照",
+      "model": "glm-5.3",
+      "tier": "Pro 级",
+      "pin": 1028,
+      "pout": 15001,
+      "cost": 0.047583554003,
+      "elapsed": 183.84,
+      "rid": "ccd2b5b05cdf4a0da14e83fb75a494d2",
+      "reasoning": 14142
+    },
+    {
+      "sid": "D",
+      "title": "找出测试用例的覆盖盲区",
+      "model": "kimi-k3.1-pro",
+      "tier": "Pro 级",
+      "pin": 1997,
+      "pout": 2680,
+      "cost": 0.023133444748000002,
+      "elapsed": 20.56,
+      "rid": "chatcmpl-cdec11e882c8aa0efc10d999",
+      "reasoning": 1898
+    },
+    {
+      "sid": "E",
+      "title": "让 AI 为「并发超卖不算缺陷」辩护，再判断它是否成立",
+      "model": "deepseek-v4-pro",
+      "tier": "Pro 级",
+      "pin": 211,
+      "pout": 5580,
+      "cost": 0.016825360081999998,
+      "elapsed": 111.22,
+      "rid": "0217955944425254f08adabc2a0b7ee0ad3a2fcb671c8c44a20de",
+      "reasoning": 5097
+    }
+  ]
+}
