@@ -1,0 +1,85 @@
+@baseUrl = http://localhost:8080
+
+### 1. 健康检查：预期 HTTP 200，code 为 0
+GET {{baseUrl}}/api/health
+
+### 2. 正常发布商品：预期 HTTP 201，data 中包含商品 id，status 为 on
+# @name createProduct
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+
+{
+  "title": "测试商品",
+  "price": 1990,
+  "stock": 10,
+  "category": "文具",
+  "description": "VS Code 接口测试",
+  "sellerName": "测试商家"
+}
+
+### 列表：预期200，可叠加keyword、status、category与分页
+GET {{baseUrl}}/api/products?status=on&page=1&pageSize=10
+
+### 详情：先运行上面的createProduct请求
+GET {{baseUrl}}/api/products/{{createProduct.response.body.$.data.id}}
+
+### 下架：预期200
+PATCH {{baseUrl}}/api/products/{{createProduct.response.body.$.data.id}}/status
+Content-Type: application/json
+
+{"status":"off"}
+
+### 重新上架后再下单
+PATCH {{baseUrl}}/api/products/{{createProduct.response.body.$.data.id}}/status
+Content-Type: application/json
+
+{"status":"on"}
+
+### 下单：预期201，金额由服务端计算
+# @name createOrder
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "productId": {{createProduct.response.body.$.data.id}},
+  "quantity": 2,
+  "buyerName": "Test buyer",
+  "buyerPhone": "00000000000",
+  "address": "Test address"
+}
+
+### 订单详情
+GET {{baseUrl}}/api/orders/{{createOrder.response.body.$.data.orderNo}}
+
+### 买家订单列表
+GET {{baseUrl}}/api/orders?buyerPhone=00000000000&page=1&pageSize=10
+
+### 支付：第一次200，重复执行409/40903
+POST {{baseUrl}}/api/payments
+Content-Type: application/json
+
+{"orderNo":"{{createOrder.response.body.$.data.orderNo}}","method":"alipay"}
+
+### 3. 负库存：预期 HTTP 400，code 为 40001，message 包含 stock
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+
+{
+  "title": "负库存测试商品",
+  "price": 1990,
+  "stock": -1,
+  "category": "文具",
+  "sellerName": "测试商家"
+}
+
+### 4. 字符串价格：预期 HTTP 400，code 为 40001，message 包含 price
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+
+{
+  "title": "错误类型测试商品",
+  "price": "1990",
+  "stock": 10,
+  "category": "文具",
+  "sellerName": "测试商家"
+}

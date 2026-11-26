@@ -1,0 +1,8 @@
+{
+  "title": "测试商品",
+  "price": 1990,
+  "stock": 10,
+  "category": "文具",
+  "description": "发布接口测试",
+  "sellerName": "测试商家"
+}
