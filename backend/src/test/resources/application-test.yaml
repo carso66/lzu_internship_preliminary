@@ -1,0 +1,17 @@
+# 自动化测试专用配置（内存库，与本地文件库完全隔离）
+spring:
+  datasource:
+    url: jdbc:h2:mem:marketplace-test;DB_CLOSE_DELAY=-1
+    username: sa
+    password: "123"
+  sql:
+    init:
+      mode: always
+      schema-locations: file:./schema.sql
+  h2:
+    console:
+      enabled: false
+
+logging:
+  level:
+    root: warn

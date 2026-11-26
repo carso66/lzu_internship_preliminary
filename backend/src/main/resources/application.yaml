@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: marketplace
+
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:./data/marketplace
+    username: sa
+    password: "123"
+
+  sql:
+    init:
+      # always：每次启动都执行脚本；配合 schema.sql 全量 IF NOT EXISTS，可安全重复启动
+      mode: always
+      # schema.sql 按官方要求放在 backend/ 根目录，因此用 file: 相对路径（工作目录为 backend/）
+      schema-locations: file:./schema.sql
+
+  h2:
+    console:
+      # 仅本地开发/验证使用的调试工具，不对外提供；提交前如不需要可改为 false
+      enabled: true
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+
+server:
+  port: 8080

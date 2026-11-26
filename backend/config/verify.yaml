@@ -1,0 +1,18 @@
+# 验收 / 回归用的独立文件库配置（不触碰 ./data/marketplace）
+# 用法：mvn spring-boot:run -Dspring-boot.run.arguments=--spring.config.additional-location=file:./config/verify.yaml
+# 或：java -jar target/marketplace-0.0.1-SNAPSHOT.jar --spring.config.additional-location=file:./config/verify.yaml
+spring:
+  datasource:
+    url: jdbc:h2:file:./data-verify/marketplace
+    username: sa
+    password: "123"
+  sql:
+    init:
+      mode: always
+      schema-locations: file:./schema.sql
+  h2:
+    console:
+      enabled: false
+
+server:
+  port: 18080
