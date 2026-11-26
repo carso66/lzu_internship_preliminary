@@ -53,7 +53,7 @@ func handle(fn endpoint) http.HandlerFunc {
 		if err := fn(w, r); err != nil {
 			var api *apiError
 			if !errors.As(err, &api) {
-				log.Printf("%s %s: %v", r.Method, r.Pattern, err)
+				log.Printf("%s: %v", r.Pattern, err)
 				api = &apiError{500, 50000, "服务暂时不可用"}
 			}
 			writeJSON(w, api.status, api.code, api.message, nil)

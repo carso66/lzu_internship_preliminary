@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -115,6 +118,16 @@ func TestProductFiltersAndPagination(t *testing.T) {
 		}
 	}
 	checkResponse(t, m.request("GET", "/api/products?pageSize=51", ""), 400, 40001)
+	checkResponse(t, m.request("GET", "/api/products?page=", ""), 400, 40001)
+	// The largest valid page depends on the width of int on the host.
+	lastPage := math.MaxInt/50 + 1
+	edgePath := fmt.Sprintf("/api/products?page=%d&pageSize=50", lastPage)
+	last := decodeData[page](t, checkResponse(t, m.request("GET", edgePath, ""), 200, 0))
+	if last.Page != lastPage || last.Total != 5 || len(last.Items) != 0 {
+		t.Fatalf("last representable page: %+v", last)
+	}
+	overflowPath := fmt.Sprintf("/api/products?page=%d&pageSize=50", lastPage+1)
+	checkResponse(t, m.request("GET", overflowPath, ""), 400, 40001)
 	checkResponse(t, m.request("GET", "/api/products/99999", ""), 404, 40401)
 	checkResponse(t, m.request("PATCH", itemPath+"/status", `{"status":"sold"}`), 400, 40001)
 	checkResponse(t, m.request("POST", "/api/products", `{"title":"x","price":0.5,"stock":1,"category":"y","sellerName":"z"}`), 400, 40001)
@@ -163,7 +176,14 @@ func TestOrderRollsBackWhenInsertFails(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rec := m.request("POST", "/api/orders", orderBody(p.ID, "1", testPhone))
+	var logs bytes.Buffer
+	previous := log.Writer()
+	log.SetOutput(&logs)
+	t.Cleanup(func() { log.SetOutput(previous) })
+	rec := m.request("POST", "/api/orders?marker=private-test-value", orderBody(p.ID, "1", testPhone))
+	if !strings.Contains(logs.String(), "POST /api/orders:") || strings.Contains(logs.String(), "POST POST") || strings.Contains(logs.String(), "private-test-value") {
+		t.Fatalf("unexpected request log: %s", logs.String())
+	}
 	checkResponse(t, rec, 500, 50000)
 	if strings.Contains(rec.Body.String(), "forced insertion failure") {
 		t.Fatal("database error was exposed to client")
@@ -249,5 +269,29 @@ func TestConcurrentPayments(t *testing.T) {
 	t.Logf("200=%d 40903=%d receipts=%d", successes, conflicts, receipts)
 	if successes != 1 || conflicts != 9 || receipts != 1 || detail.Status != "paid" || detail.PaidAt == nil || *detail.PaidAt != paidAt {
 		t.Fatalf("unexpected paid order: %+v", detail)
+	}
+}
+
+func TestPaymentRollsBackWhenReceiptWriteFails(t *testing.T) {
+	m := newTestMarket(t)
+	p := m.product(t, "笔芯", "文具", 1)
+	o := decodeData[order](t, checkResponse(t, m.request("POST", "/api/orders", orderBody(p.ID, "1", testPhone)), 201, 0))
+	_, err := m.db.Exec(`CREATE TRIGGER fail_receipt BEFORE INSERT ON payments
+		BEGIN SELECT RAISE(ABORT, 'forced receipt failure'); END`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := fmt.Sprintf(`{"orderNo":%q,"method":"alipay"}`, o.OrderNo)
+	checkResponse(t, m.request("POST", "/api/payments", body), 500, 50000)
+	detail := decodeData[order](t, checkResponse(t, m.request("GET", "/api/orders/"+o.OrderNo, ""), 200, 0))
+	if detail.Status != "created" || detail.PaidAt != nil || m.quantity(t, "SELECT COUNT(*) FROM payments WHERE order_no=?", o.OrderNo) != 0 {
+		t.Fatalf("payment failure left partial state: %+v", detail)
+	}
+	if _, err := m.db.Exec("DROP TRIGGER fail_receipt"); err != nil {
+		t.Fatal(err)
+	}
+	checkResponse(t, m.request("POST", "/api/payments", body), 200, 0)
+	if n := m.quantity(t, "SELECT COUNT(*) FROM payments WHERE order_no=?", o.OrderNo); n != 1 {
+		t.Fatalf("receipts after retry = %d", n)
 	}
 }
