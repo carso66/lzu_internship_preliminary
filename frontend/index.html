@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>校园好物市集</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-head">
+      <h1>校园好物市集</h1>
+      <p class="sub">商品 · 下单 · 订单　|　金额单位为「分」，页面统一显示 ¥xx.xx</p>
+    </header>
+
+    <section class="panel">
+      <h2>筛选商品</h2>
+      <div class="filters">
+        <label class="field">
+          <span>关键词</span>
+          <input id="f-keyword" type="search" placeholder="标题模糊匹配，如 zzz" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>状态</span>
+          <select id="f-status">
+            <option value="">全部状态</option>
+            <option value="on">在售</option>
+            <option value="off">已下架</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>分类</span>
+          <select id="f-category">
+            <option value="">全部分类</option>
+            <option value="数码">数码</option>
+            <option value="图书">图书</option>
+            <option value="服饰">服饰</option>
+            <option value="食品">食品</option>
+            <option value="文具">文具</option>
+          </select>
+        </label>
+        <button id="f-clear" class="btn btn-ghost" type="button">清空筛选</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>发布商品</h2>
+      <form id="publish-form" novalidate>
+        <div class="form-grid">
+          <label class="field">
+            <span>标题 <em>*</em></span>
+            <input id="p-title" type="text" maxlength="80" placeholder="1~50 字" autocomplete="off">
+            <small class="err" id="e-title"></small>
+          </label>
+          <label class="field">
+            <span>价格（元）<em>*</em></span>
+            <input id="p-price" type="text" inputmode="decimal" placeholder="如 19.99" autocomplete="off">
+            <small class="err" id="e-price"></small>
+          </label>
+          <label class="field">
+            <span>库存 <em>*</em></span>
+            <input id="p-stock" type="text" inputmode="numeric" placeholder="0~999 整数" autocomplete="off">
+            <small class="err" id="e-stock"></small>
+          </label>
+          <label class="field">
+            <span>分类 <em>*</em></span>
+            <select id="p-category">
+              <option value="数码">数码</option>
+              <option value="图书">图书</option>
+              <option value="服饰">服饰</option>
+              <option value="食品">食品</option>
+              <option value="文具">文具</option>
+            </select>
+            <small class="err" id="e-category"></small>
+          </label>
+          <label class="field field-wide">
+            <span>描述</span>
+            <textarea id="p-description" rows="2" maxlength="300" placeholder="选填，不超过 200 字"></textarea>
+            <small class="err" id="e-description"></small>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button id="p-submit" class="btn btn-primary" type="submit">发布商品</button>
+          <span id="publish-msg" class="form-msg" role="status"></span>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>商品列表 <span id="product-count" class="count"></span></h2>
+      <div id="product-area" class="list-area" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <h2>订单列表 <span id="order-count" class="count"></span></h2>
+      <div id="order-area" class="list-area" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>
