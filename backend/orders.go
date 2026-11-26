@@ -85,11 +85,11 @@ func (s *server) createOrder(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	ctx := r.Context()
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer tx.close()
 
 	// Taking stock and reading its price in one statement keeps the order snapshot
 	// tied to the product the database actually allowed this request to buy.
@@ -126,7 +126,7 @@ func (s *server) createOrder(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	if err := tx.Commit(); err != nil {
+	if err := tx.commit(); err != nil {
 		return err
 	}
 	return respond(w, http.StatusCreated, result)
@@ -154,11 +154,11 @@ func (s *server) listOrders(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	ctx := r.Context()
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer tx.close()
 	var total int
 	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM orders WHERE buyer_phone = ?", phone).Scan(&total); err != nil {
 		return err
@@ -180,7 +180,7 @@ func (s *server) listOrders(w http.ResponseWriter, r *http.Request) error {
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	if err := tx.Commit(); err != nil {
+	if err := tx.commit(); err != nil {
 		return err
 	}
 	return respond(w, http.StatusOK, map[string]any{"page": page, "pageSize": size, "total": total, "items": items})

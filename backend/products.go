@@ -152,11 +152,11 @@ func (s *server) listProducts(w http.ResponseWriter, r *http.Request) error {
 		from += " WHERE " + strings.Join(conditions, " AND ")
 	}
 	ctx := r.Context()
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer tx.close()
 	var total int
 	if err = tx.QueryRowContext(ctx, "SELECT count(*)"+from, args...).Scan(&total); err != nil {
 		return err
@@ -177,7 +177,7 @@ func (s *server) listProducts(w http.ResponseWriter, r *http.Request) error {
 	if err = rows.Err(); err != nil {
 		return err
 	}
-	if err = tx.Commit(); err != nil {
+	if err = tx.commit(); err != nil {
 		return err
 	}
 	return respond(w, 200, map[string]any{"page": page, "pageSize": size, "total": total, "items": items})

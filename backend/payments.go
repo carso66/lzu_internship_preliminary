@@ -26,11 +26,11 @@ func (s *server) pay(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	ctx := r.Context()
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer tx.close()
 	var amount int64
 	var paidAt string
 	err = tx.QueryRowContext(ctx, `UPDATE orders
@@ -54,7 +54,7 @@ func (s *server) pay(w http.ResponseWriter, r *http.Request) error {
 		VALUES (?, ?, ?, ?, ?)`, paymentID, orderNo, amount, input.Method, paidAt); err != nil {
 		return err
 	}
-	if err := tx.Commit(); err != nil {
+	if err := tx.commit(); err != nil {
 		return err
 	}
 	return respond(w, http.StatusOK, map[string]any{
