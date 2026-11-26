@@ -51,9 +51,9 @@ mvn spring-boot:run
 **如何运行**（先 `cd backend` 并确认服务已启动）：
 
 ```bash
-pwsh -File scripts/concurrency-check.ps1
-# 默认 10 并发；可覆盖参数：
-# pwsh -File scripts/concurrency-check.ps1 -BaseUrl http://127.0.0.1:8080 -Concurrency 10
+新打开一个控制台（cmd）
+cd backend
+powershell -ExecutionPolicy Bypass -File .\scripts\concurrency-check.ps1
 ```
 
 **如何核对**：脚本自动打印 4 项检查，全部 PASS 时退出码为 0，否则为 1：
