@@ -10,7 +10,7 @@
 
 | 项 | 内容                                         |
 |---|--------------------------------------------|
-| 用了哪些模型 | `DeepSeek-V4.1-Flash` `deepseek-v4-pro`    |
+| 用了哪些模型 | `DeepSeek-V4.1-Flash` `deepseek-v4-pro``kimi-k3.1-pro`    |
 | 大致调用次数 | 103 次                                      |
 | 大致花费 | 10.0 元 / 额度 40 元                           |
 | 主要用在哪些环节 | 任务代码实现（写实体类，control层，service层，mapper层）以及测试 |

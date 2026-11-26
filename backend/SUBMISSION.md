@@ -51,7 +51,7 @@ mvn spring-boot:run
 **如何运行**（先 `cd backend` 并确认服务已启动）：
 
 ```bash
-新打开一个控制台（cmd）
+新打开一个控制台
 cd backend
 powershell -ExecutionPolicy Bypass -File .\scripts\concurrency-check.ps1
 ```
@@ -70,13 +70,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\concurrency-check.ps1
 在你的方向目录下运行测试。后端在 `backend/` 下按项目语言选一条命令，提交时只保留实际使用的命令。
 
 ```bash
-
-mvn test        # 后端（Java / Maven）
-pytest -q       # 测试方向
-```
-
-```
 未写自动化测试
+mvn test        # 后端（Java / Maven）
+
 ```
 
 
