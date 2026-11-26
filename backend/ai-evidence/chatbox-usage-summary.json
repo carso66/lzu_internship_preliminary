@@ -1,0 +1,158 @@
+{
+  "source_zip_sha256": "b866295de7281c35cd263c4a6da91fe7a66f9f54ceae15c33783e445bcce6a7f",
+  "export_created": "2026-11-25T23:42:48.649Z",
+  "export_selection": {
+    "sessions": true,
+    "settings": true,
+    "copilots": true,
+    "credentials": false
+  },
+  "session_name": "简单问候与打招呼",
+  "session_count": 1,
+  "thread_count": 1,
+  "message_count": 128,
+  "roles": {
+    "user": 62,
+    "system": 1,
+    "assistant": 65
+  },
+  "first_message": "2026-11-24T17:09:49+08:00",
+  "last_message": "2026-11-25T22:35:00+08:00",
+  "models": [
+    {
+      "model_id": "(missing)",
+      "assistant_records": 2,
+      "visible_replies": 2,
+      "with_usage": 0,
+      "with_error": 0,
+      "finish_reasons": {
+        "(missing)": 2
+      },
+      "tokens": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      }
+    },
+    {
+      "model_id": "Kimi-K3.1-Pro",
+      "assistant_records": 1,
+      "visible_replies": 0,
+      "with_usage": 0,
+      "with_error": 1,
+      "finish_reasons": {
+        "(missing)": 1
+      },
+      "tokens": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      }
+    },
+    {
+      "model_id": "MiniMax-M3",
+      "assistant_records": 14,
+      "visible_replies": 11,
+      "with_usage": 13,
+      "with_error": 1,
+      "finish_reasons": {
+        "stop": 11,
+        "length": 2,
+        "(missing)": 1
+      },
+      "tokens": {
+        "inputTokens": 587572,
+        "outputTokens": 116180,
+        "totalTokens": 703752,
+        "cachedInputTokens": 198242,
+        "reasoningTokens": 81226
+      }
+    },
+    {
+      "model_id": "Qwen3.8-Max",
+      "assistant_records": 1,
+      "visible_replies": 0,
+      "with_usage": 0,
+      "with_error": 1,
+      "finish_reasons": {
+        "(missing)": 1
+      },
+      "tokens": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "cachedInputTokens": 0,
+        "reasoningTokens": 0
+      }
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "assistant_records": 28,
+      "visible_replies": 24,
+      "with_usage": 24,
+      "with_error": 4,
+      "finish_reasons": {
+        "stop": 24,
+        "(missing)": 4
+      },
+      "tokens": {
+        "inputTokens": 732604,
+        "outputTokens": 101747,
+        "totalTokens": 834351,
+        "cachedInputTokens": 550912,
+        "reasoningTokens": 55193
+      }
+    },
+    {
+      "model_id": "deepseek-v4.1-flash",
+      "assistant_records": 8,
+      "visible_replies": 6,
+      "with_usage": 6,
+      "with_error": 2,
+      "finish_reasons": {
+        "(missing)": 2,
+        "stop": 6
+      },
+      "tokens": {
+        "inputTokens": 44218,
+        "outputTokens": 20352,
+        "totalTokens": 64570,
+        "cachedInputTokens": 5120,
+        "reasoningTokens": 11879
+      }
+    },
+    {
+      "model_id": "glm-5.3",
+      "assistant_records": 11,
+      "visible_replies": 11,
+      "with_usage": 11,
+      "with_error": 0,
+      "finish_reasons": {
+        "stop": 11
+      },
+      "tokens": {
+        "inputTokens": 1001516,
+        "outputTokens": 66938,
+        "totalTokens": 1068454,
+        "cachedInputTokens": 833088,
+        "reasoningTokens": 53821
+      }
+    }
+  ],
+  "active_path_messages": 128,
+  "active_path_roles": {
+    "system": 1,
+    "user": 62,
+    "assistant": 65
+  },
+  "resource_count": 101,
+  "attachment_references": 129,
+  "resolved_attachment_texts": 100,
+  "warning_categories": {
+    "attachment-portability": 18
+  }
+}

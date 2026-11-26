@@ -1,0 +1,16 @@
+Codex 协助排查报告导出错误：历史证据摘录
+
+用途：支持 AI_USAGE 场景 2。本文件前两段为依据协作过程整理的说明，不是完整 Codex 原始对话导出。
+当时用户运行 Codex 提供的本地测试与导出脚本，Maven 完成后，Surefire XML 报告导出发生编码/解析错误。
+随后调整 XML 加载方式，检查原日志与原 XML，恢复结果；没有为恢复报告重跑业务测试。
+该证据是 2026-11-25 全量原型的 18 项测试，与当前最终精简版本 11 项结果分开使用。
+
+以下为当时恢复后 maven-summary.txt 原文：
+------------------------------------------------------------
+Command: mvnw.cmd -B -ntp clean test
+BUILD SUCCESS confirmed in the original run log.
+Tests run: 18, Failures: 0, Errors: 0, Skipped: 0
+Suites: 5
+Run started: 2026-11-25T20:52:14.1356065+08:00
+Export recovered after fixing XML decoding. No tests rerun.
+The original process exit code was not saved before the export error.

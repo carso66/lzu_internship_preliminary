@@ -1,0 +1,18 @@
+Target: http://localhost:50812
+This script creates one valid test product. Keep other clients idle during the test.
+Initial product count: 0
+  HTTP 400 | {"code":40001,"message":"stock 字段类型错误","data":null}
+PASS: stock as string
+  HTTP 400 | {"code":40001,"message":"price 字段类型错误","data":null}
+PASS: price as decimal
+  HTTP 400 | {"code":40001,"message":"请求体格式或字段类型错误","data":null}
+PASS: malformed JSON
+  HTTP 400 | {"code":40001,"message":"参数类型错误：id","data":null}
+PASS: invalid path parameter
+  HTTP 400 | {"code":40001,"message":"page 必须大于等于 1","data":null}
+PASS: invalid page
+PASS: invalid requests did not insert products
+  HTTP 201 | {"code":0,"message":"ok","data":{"id":1,"title":"NotebookValidation","price":1990,"stock":10,"category":"Stationery","description":"","imageUrl":"","status":"on","sellerName":"Test seller","createdAt":"2026-11-25T22:55:17.240304","updatedAt":"2026-11-25T22:55:17.240304"}}
+PASS: valid product creation
+PASS: valid request inserted exactly one product
+RESULT: 8 passed, 0 failed.
